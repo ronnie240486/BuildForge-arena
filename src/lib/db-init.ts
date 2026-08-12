@@ -202,12 +202,16 @@ export async function ensureSchema() {
 }
 
 export async function seedDefaults() {
-  const { rows } = await pool.query("SELECT id FROM users WHERE email = $1", ["admin@buildforge.dev"]);
+  const adminName = process.env.ADMIN_NAME || "Forge Admin";
+  const adminEmail = process.env.ADMIN_EMAIL || "admin@buildforge.dev";
+  const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+
+  const { rows } = await pool.query("SELECT id FROM users WHERE email = $1", [adminEmail]);
   if (rows.length === 0) {
-    const hash = await hashPassword("admin123");
+    const hash = await hashPassword(adminPassword);
     await pool.query(
       "INSERT INTO users (name, email, password_hash, role, avatar_color, github_user, build_limit) VALUES ($1, $2, $3, 'admin', 'indigo', 'buildforge', -1)",
-      ["Forge Admin", "admin@buildforge.dev", hash],
+      [adminName, adminEmail, hash],
     );
   }
 
