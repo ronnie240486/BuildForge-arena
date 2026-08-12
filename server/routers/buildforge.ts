@@ -100,7 +100,7 @@ export const buildforgeRouter = router({
       }
     }),
     create: protectedProcedure
-      .input(z.object({ projectId: z.number().int().positive(), artifact: z.enum(["apk", "aab"]) }))
+      .input(z.object({ projectId: z.number().int().positive(), artifact: z.enum(["apk", "aab"]), signingKeyId: z.number().int().positive().optional() }))
       .mutation(async ({ ctx, input }) => {
         try {
           return await createBuild({ actor: actorFromUser(ctx.user), ...input });
@@ -222,7 +222,7 @@ export const buildforgeRouter = router({
     }),
   }),
   releases: router({
-    createWebview: protectedProcedure.input(z.object({ siteUrl: z.string().url().max(2048), appName: z.string().trim().min(2).max(120), permissions: z.array(z.enum(["internet", "camera", "location", "notifications", "storage"])).max(5), allowNavigation: z.boolean() })).mutation(async ({ ctx, input }) => {
+    createWebview: protectedProcedure.input(z.object({ siteUrl: z.string().url().max(2048), appName: z.string().trim().min(2).max(120), permissions: z.array(z.enum(["internet", "camera", "location", "notifications", "storage"])).max(5), allowNavigation: z.boolean(), icon: z.object({ filename: z.string().min(1).max(255), contentType: z.string().startsWith("image/"), contentBase64: z.string().min(4).max(7_000_000) }).optional(), splash: z.object({ filename: z.string().min(1).max(255), contentType: z.string().startsWith("image/"), contentBase64: z.string().min(4).max(7_000_000) }).optional() })).mutation(async ({ ctx, input }) => {
       try {
         return await createWebviewProject({ actor: actorFromUser(ctx.user), ...input });
       } catch (error) {
@@ -236,7 +236,7 @@ export const buildforgeRouter = router({
         throw toTrpcError(error);
       }
     }),
-    uploadSigningKey: protectedProcedure.input(z.object({ label: z.string().trim().min(2).max(120), alias: z.string().trim().min(1).max(160), filename: z.string().min(1).max(255), contentBase64: z.string().min(4).max(14_000_000) })).mutation(async ({ ctx, input }) => {
+    uploadSigningKey: protectedProcedure.input(z.object({ label: z.string().trim().min(2).max(120), alias: z.string().trim().min(1).max(160), filename: z.string().min(1).max(255), contentBase64: z.string().min(4).max(14_000_000), storePassword: z.string().max(512).optional(), keyPassword: z.string().max(512).optional() })).mutation(async ({ ctx, input }) => {
       try {
         return await uploadSigningKey({ actor: actorFromUser(ctx.user), ...input });
       } catch (error) {

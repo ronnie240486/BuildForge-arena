@@ -1,0 +1,1 @@
+ALTER TABLE `signing_keys` ADD `expires_at` timestamp;

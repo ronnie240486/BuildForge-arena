@@ -1,5 +1,5 @@
 import { and, count, desc, eq, sql } from "drizzle-orm";
-import { createCipheriv, createHash, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { strFromU8, unzipSync } from "fflate";
 import {
   aiFixes,
@@ -61,7 +61,7 @@ async function emitBuildNotification(input: { buildId: number; event: "build_que
   const title = input.event === "build_queued" ? "Build entrou na fila" : input.event === "build_succeeded" ? "Build concluído com sucesso" : "Build falhou";
   let sent = false;
   try {
-    sent = await notifyOwner({ title: `BuildForge · ${title}`, content: `${input.summary}\n\nBuild #${input.buildId}${artifactUrl}` });
+    sent = await notifyOwner({ title: `BuildForge · ${title}`, content: `${input.summary}\n\nBuild #${input.buildId}\nDetalhes: /builds?build=${input.buildId}${artifactUrl}` });
   } catch (error) {
     console.warn("[BuildForge] Falha ao disparar notificação do proprietário:", error);
   }
@@ -260,7 +260,7 @@ export async function uploadProjectZip(input: {
   }
   const framework = detectZipFramework(buffer);
   const filename = safeFilename(input.filename);
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const expiresAt = null;
   const { key } = await storagePut(`projects/${project.id}/source/${filename}`, buffer, "application/zip");
 
   await db.update(projects).set({ source: "zip", sourceStorageKey: key, framework, detectedAt: new Date() }).where(eq(projects.id, project.id));
@@ -295,7 +295,7 @@ export async function uploadArtifact(input: {
     if (!build || build.projectId !== project.id) throw new Error("Build inválido para este projeto.");
   }
   const filename = safeFilename(input.filename);
-  const expiresAt = new Date(Date.now() + (input.type === "source" || input.type === "log" ? 30 : 7) * 24 * 60 * 60 * 1000);
+  const expiresAt = input.type === "source" ? null : new Date(Date.now() + (input.type === "log" ? 30 : 7) * 24 * 60 * 60 * 1000);
   const { key } = await storagePut(`projects/${project.id}/${input.type}/${filename}`, buffer, input.contentType || "application/octet-stream");
   const [result] = await db.insert(artifacts).values({
     projectId: project.id,
@@ -355,6 +355,7 @@ export async function createBuild(input: {
   actor: PlatformActor;
   projectId: number;
   artifact: "apk" | "aab";
+  signingKeyId?: number;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
@@ -363,18 +364,28 @@ export async function createBuild(input: {
   if (!project || (!isPlatformAdmin(input.actor) && project.ownerId !== input.actor.id)) {
     throw new Error("Projeto não encontrado ou não autorizado.");
   }
+  if (input.signingKeyId) {
+    const [signingKey] = await db.select({ id: signingKeys.id, ownerId: signingKeys.ownerId, expiresAt: signingKeys.expiresAt }).from(signingKeys).where(eq(signingKeys.id, input.signingKeyId)).limit(1);
+    if (!signingKey || (!isPlatformAdmin(input.actor) && signingKey.ownerId !== input.actor.id)) throw new Error("Keystore não encontrada ou não autorizada.");
+    if (signingKey.expiresAt && signingKey.expiresAt < new Date()) throw new Error("A keystore selecionada expirou e deve ser reenviada.");
+  }
 
   const [queueSummary] = await db
     .select({ queued: count() })
     .from(builds)
     .where(eq(builds.status, "queued"));
+  const [latestVersion] = await db.select({ versionCode: sql<number>`COALESCE(MAX(${builds.versionCode}), 0)` }).from(builds).where(eq(builds.projectId, project.id));
+  const versionCode = Number(latestVersion?.versionCode ?? 0) + 1;
   const [result] = await db.insert(builds).values({
     projectId: project.id,
     requestedById: input.actor.id,
     status: "queued",
     framework: project.framework,
     requestedArtifact: input.artifact,
+    signingKeyId: input.signingKeyId ?? null,
     queuePosition: Number(queueSummary?.queued ?? 0) + 1,
+    versionCode,
+    versionName: `1.0.${versionCode}`,
   });
 
   const buildId = Number(result.insertId);
@@ -390,10 +401,10 @@ export async function createBuild(input: {
     action: "build.queued",
     entityType: "build",
     entityId: String(buildId),
-    metadata: { projectId: project.id, artifact: input.artifact },
+    metadata: { projectId: project.id, artifact: input.artifact, versionCode },
   });
 
-  return { id: buildId, queuePosition: Number(queueSummary?.queued ?? 0) + 1 };
+  return { id: buildId, queuePosition: Number(queueSummary?.queued ?? 0) + 1, versionCode, versionName: `1.0.${versionCode}` };
 }
 
 export async function listBuilds(actor: PlatformActor, projectId?: number) {
@@ -547,8 +558,11 @@ export async function claimBuildForWorker(token: string) {
   await addAuditLog({ actorId: worker.ownerId, action: "build.claimed", entityType: "build", entityId: String(candidate.build.id), metadata: { workerId: worker.id } });
   const approvedFixes = await db.select({ id: aiFixes.id, affectedFiles: aiFixes.affectedFiles, patch: aiFixes.patch, explanation: aiFixes.explanation }).from(aiFixes).where(and(eq(aiFixes.buildId, candidate.build.id), eq(aiFixes.status, "approved")));
   const sourceUrl = candidate.project.sourceStorageKey ? await storageGetSignedUrl(candidate.project.sourceStorageKey) : null;
-  const [webviewConfig] = candidate.build.framework === "webview" ? await db.select({ siteUrl: webviewApps.siteUrl, appName: webviewApps.appName, permissions: webviewApps.permissions, allowNavigation: webviewApps.allowNavigation }).from(webviewApps).where(eq(webviewApps.projectId, candidate.project.id)).limit(1) : [];
-  return { build: { id: candidate.build.id, projectId: candidate.project.id, projectName: candidate.project.name, framework: candidate.build.framework, artifact: candidate.build.requestedArtifact, repoUrl: candidate.project.repoUrl, branch: candidate.project.branch, sourceUrl, webviewConfig: webviewConfig ?? null, approvedFixes } };
+  const [storedWebview] = candidate.build.framework === "webview" ? await db.select({ siteUrl: webviewApps.siteUrl, appName: webviewApps.appName, permissions: webviewApps.permissions, allowNavigation: webviewApps.allowNavigation, iconArtifactId: webviewApps.iconArtifactId, splashArtifactId: webviewApps.splashArtifactId }).from(webviewApps).where(eq(webviewApps.projectId, candidate.project.id)).limit(1) : [];
+  const [iconAsset] = storedWebview?.iconArtifactId ? await db.select({ storageKey: artifacts.storageKey, contentType: artifacts.contentType }).from(artifacts).where(eq(artifacts.id, storedWebview.iconArtifactId)).limit(1) : [];
+  const [splashAsset] = storedWebview?.splashArtifactId ? await db.select({ storageKey: artifacts.storageKey, contentType: artifacts.contentType }).from(artifacts).where(eq(artifacts.id, storedWebview.splashArtifactId)).limit(1) : [];
+  const webviewConfig = storedWebview ? { ...storedWebview, icon: iconAsset ? { url: await storageGetSignedUrl(iconAsset.storageKey), contentType: iconAsset.contentType } : null, splash: splashAsset ? { url: await storageGetSignedUrl(splashAsset.storageKey), contentType: splashAsset.contentType } : null } : null;
+  return { build: { id: candidate.build.id, projectId: candidate.project.id, projectName: candidate.project.name, framework: candidate.build.framework, artifact: candidate.build.requestedArtifact, versionCode: candidate.build.versionCode, versionName: candidate.build.versionName, repoUrl: candidate.project.repoUrl, branch: candidate.project.branch, sourceUrl, webviewConfig, approvedFixes } };
 }
 
 export async function appendWorkerLog(input: { token: string; buildId: number; sequence: number; level: string; message: string; progress?: number }) {
@@ -567,6 +581,19 @@ export async function uploadWorkerArtifact(input: { token: string; buildId: numb
   const [build] = await db.select().from(builds).where(eq(builds.id, input.buildId)).limit(1);
   if (!build || build.workerId !== worker.id) throw new Error("Build não está atribuído a este worker.");
   return uploadArtifact({ actor: { id: worker.ownerId, role: "member" }, projectId: build.projectId, buildId: build.id, type: input.type, filename: input.filename, contentType: input.contentType, contentBase64: input.contentBase64 });
+}
+
+export async function getWorkerSigningMaterial(input: { token: string; buildId: number }) {
+  const { db, worker } = await getWorkerByToken(input.token);
+  const [build] = await db.select({ id: builds.id, workerId: builds.workerId, signingKeyId: builds.signingKeyId }).from(builds).where(eq(builds.id, input.buildId)).limit(1);
+  if (!build || build.workerId !== worker.id) throw new Error("Build não está atribuído a este worker.");
+  if (!build.signingKeyId) return null;
+  const [signingKey] = await db.select().from(signingKeys).where(eq(signingKeys.id, build.signingKeyId)).limit(1);
+  if (!signingKey || signingKey.ownerId !== worker.ownerId) throw new Error("Keystore não disponível para este worker.");
+  if (signingKey.expiresAt && signingKey.expiresAt < new Date()) throw new Error("A keystore vinculada a este build expirou.");
+  const material = await decryptSigningMaterial(signingKey.encryptedStorageKey);
+  await db.update(signingKeys).set({ lastUsedAt: new Date() }).where(eq(signingKeys.id, signingKey.id));
+  return { alias: signingKey.alias, ...material };
 }
 
 export async function completeWorkerBuild(input: { token: string; buildId: number; status: "succeeded" | "failed" | "cancelled"; summary?: string; appliedFixIds?: number[]; artifactId?: number }) {
@@ -805,7 +832,7 @@ export async function createTemplateProject(input: { actor: PlatformActor; templ
   return createProject({ actor: input.actor, name: input.name?.trim() || `${template.name} mobile`, description: template.description, source: "template", reference: template.framework, templateSlug: template.slug });
 }
 
-export async function createWebviewProject(input: { actor: PlatformActor; siteUrl: string; appName: string; permissions: string[]; allowNavigation: boolean }) {
+export async function createWebviewProject(input: { actor: PlatformActor; siteUrl: string; appName: string; permissions: string[]; allowNavigation: boolean; icon?: { filename: string; contentType: string; contentBase64: string }; splash?: { filename: string; contentType: string; contentBase64: string } }) {
   let url: URL;
   try {
     url = new URL(input.siteUrl);
@@ -816,38 +843,60 @@ export async function createWebviewProject(input: { actor: PlatformActor; siteUr
   const project = await createProject({ actor: input.actor, name: input.appName, description: `Aplicativo WebView para ${url.origin}`, source: "webview", reference: url.toString() });
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
-  await db.insert(webviewApps).values({ projectId: project.id, siteUrl: url.toString(), appName: input.appName, permissions: input.permissions, allowNavigation: input.allowNavigation });
+  const uploadVisual = async (visual: typeof input.icon | undefined, label: "icon" | "splash") => {
+    if (!visual) return null;
+    if (!visual.contentType.startsWith("image/")) throw new Error(`${label === "icon" ? "O ícone" : "A splash screen"} deve ser uma imagem.`);
+    const uploaded = await uploadArtifact({ actor: input.actor, projectId: project.id, type: "source", filename: `${label}-${visual.filename}`, contentType: visual.contentType, contentBase64: visual.contentBase64 });
+    return uploaded.id;
+  };
+  const [iconArtifactId, splashArtifactId] = await Promise.all([uploadVisual(input.icon, "icon"), uploadVisual(input.splash, "splash")]);
+  await db.insert(webviewApps).values({ projectId: project.id, siteUrl: url.toString(), appName: input.appName, iconArtifactId, splashArtifactId, permissions: input.permissions, allowNavigation: input.allowNavigation });
   await addAuditLog({ actorId: input.actor.id, action: "webview.created", entityType: "project", entityId: String(project.id), metadata: { origin: url.origin, permissions: input.permissions } });
   return project;
 }
 
-function encryptSigningMaterial(content: Buffer) {
+function encryptSigningMaterial(content: Buffer, storePassword?: string, keyPassword?: string) {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("Não foi possível proteger a chave de assinatura neste ambiente.");
   const key = createHash("sha256").update(secret).digest();
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const encrypted = Buffer.concat([cipher.update(content), cipher.final()]);
-  return Buffer.concat([Buffer.from("BFK1"), iv, cipher.getAuthTag(), encrypted]);
+  const payload = Buffer.from(JSON.stringify({ material: content.toString("base64"), storePassword: storePassword || "", keyPassword: keyPassword || storePassword || "" }));
+  const encrypted = Buffer.concat([cipher.update(payload), cipher.final()]);
+  return Buffer.concat([Buffer.from("BFK2"), iv, cipher.getAuthTag(), encrypted]);
 }
 
-export async function uploadSigningKey(input: { actor: PlatformActor; label: string; alias: string; filename: string; contentBase64: string }) {
+async function decryptSigningMaterial(storageKey: string) {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error("Não foi possível acessar a chave de assinatura neste ambiente.");
+  const response = await fetch(await storageGetSignedUrl(storageKey));
+  if (!response.ok) throw new Error("Não foi possível recuperar a keystore criptografada.");
+  const packed = Buffer.from(await response.arrayBuffer());
+  if (packed.length < 32 || !packed.subarray(0, 4).equals(Buffer.from("BFK2"))) throw new Error("A keystore precisa ser reenviada para uso por worker seguro.");
+  const decipher = createDecipheriv("aes-256-gcm", createHash("sha256").update(secret).digest(), packed.subarray(4, 16));
+  decipher.setAuthTag(packed.subarray(16, 32));
+  const payload = JSON.parse(Buffer.concat([decipher.update(packed.subarray(32)), decipher.final()]).toString("utf8")) as { material: string; storePassword: string; keyPassword: string };
+  return payload;
+}
+
+export async function uploadSigningKey(input: { actor: PlatformActor; label: string; alias: string; filename: string; contentBase64: string; storePassword?: string; keyPassword?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
   const material = Buffer.from(input.contentBase64, "base64");
   if (!material.length || material.length > 10 * 1024 * 1024) throw new Error("A chave de assinatura deve ter entre 1 byte e 10 MB.");
-  const encrypted = encryptSigningMaterial(material);
+  const encrypted = encryptSigningMaterial(material, input.storePassword, input.keyPassword);
   const safeName = safeFilename(input.filename).replace(/\.(jks|keystore)$/i, "") || "keystore";
   const { key } = await storagePut(`signing/${input.actor.id}/${safeName}.bfk`, encrypted, "application/octet-stream");
-  const [result] = await db.insert(signingKeys).values({ ownerId: input.actor.id, label: input.label.trim(), alias: input.alias.trim(), encryptedStorageKey: key });
+  const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+  const [result] = await db.insert(signingKeys).values({ ownerId: input.actor.id, label: input.label.trim(), alias: input.alias.trim(), encryptedStorageKey: key, expiresAt });
   await addAuditLog({ actorId: input.actor.id, action: "signing_key.uploaded", entityType: "signing_key", entityId: String(result.insertId), metadata: { label: input.label.trim(), alias: input.alias.trim() } });
-  return { id: Number(result.insertId), label: input.label.trim() };
+  return { id: Number(result.insertId), label: input.label.trim(), expiresAt };
 }
 
 export async function listSigningKeys(actor: PlatformActor) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
-  return db.select({ id: signingKeys.id, label: signingKeys.label, alias: signingKeys.alias, lastUsedAt: signingKeys.lastUsedAt, createdAt: signingKeys.createdAt }).from(signingKeys).where(isPlatformAdmin(actor) ? undefined : eq(signingKeys.ownerId, actor.id)).orderBy(desc(signingKeys.createdAt));
+  return db.select({ id: signingKeys.id, label: signingKeys.label, alias: signingKeys.alias, lastUsedAt: signingKeys.lastUsedAt, expiresAt: signingKeys.expiresAt, createdAt: signingKeys.createdAt }).from(signingKeys).where(isPlatformAdmin(actor) ? undefined : eq(signingKeys.ownerId, actor.id)).orderBy(desc(signingKeys.createdAt));
 }
 
 export async function listAuditEvents(actor: PlatformActor) {

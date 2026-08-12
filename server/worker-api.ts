@@ -1,5 +1,5 @@
 import type { Express, Request } from "express";
-import { appendWorkerLog, claimBuildForWorker, completeWorkerBuild, heartbeatWorker, uploadWorkerArtifact } from "./buildforge-db";
+import { appendWorkerLog, claimBuildForWorker, completeWorkerBuild, getWorkerSigningMaterial, heartbeatWorker, uploadWorkerArtifact } from "./buildforge-db";
 
 function readWorkerToken(request: Request) {
   const authorization = request.header("authorization");
@@ -65,6 +65,17 @@ export function registerWorkerApi(app: Express) {
       const { buildId, type, filename, contentType, contentBase64 } = req.body ?? {};
       if (!token || !Number.isInteger(buildId) || !["apk", "aab", "log"].includes(type) || typeof filename !== "string" || typeof contentType !== "string" || typeof contentBase64 !== "string") return res.status(400).json({ error: "Payload de artefato inválido." });
       return res.json(await uploadWorkerArtifact({ token, buildId, type, filename, contentType, contentBase64 }));
+    } catch (error) {
+      return sendError(res as never, error);
+    }
+  });
+
+  app.post("/api/worker/signing", async (req, res) => {
+    try {
+      const token = readWorkerToken(req);
+      const { buildId } = req.body ?? {};
+      if (!token || !Number.isInteger(buildId)) return res.status(400).json({ error: "Payload de assinatura inválido." });
+      return res.json(await getWorkerSigningMaterial({ token, buildId }));
     } catch (error) {
       return sendError(res as never, error);
     }

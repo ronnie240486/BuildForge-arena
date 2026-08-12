@@ -1,0 +1,2 @@
+ALTER TABLE `builds` ADD `signing_key_id` int;--> statement-breakpoint
+ALTER TABLE `builds` ADD CONSTRAINT `builds_signing_key_id_signing_keys_id_fk` FOREIGN KEY (`signing_key_id`) REFERENCES `signing_keys`(`id`) ON DELETE set null ON UPDATE no action;

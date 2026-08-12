@@ -5,37 +5,44 @@
 - [x] Validar integralmente tabelas, colunas críticas de usuário, chaves estrangeiras e índices do esquema aplicado.
 - [x] Reconciliar o histórico de migrações com o esquema aplicado e comprovar uma verificação reprodutível do banco.
 - [x] Registrar auditoria detalhada por nome e definição de tabelas, colunas críticas, chaves estrangeiras e índices do esquema.
-- [ ] Executar as migrações em um esquema limpo de verificação e comprovar que o resultado coincide com o modelo esperado.
+- [x] Executar as migrações em um esquema limpo de verificação e comprovar que o resultado coincide com o modelo esperado.
 - [x] Implementar autenticação Manus OAuth, perfil de usuário persistente e guarda de rotas por papel.
 - [x] Criar o layout responsivo do painel com navegação lateral, tema claro/escuro e rotas de operação.
 - [x] Implementar cartões de métricas e consultas para projetos, builds recentes, workers ativos e consumo de builds.
 - [x] Implementar criação de projeto por URL GitHub, clone Git e ZIP, com validação e detecção de Android, Flutter ou React Native.
-- [ ] Implementar importação real de repositórios GitHub e Git com clone ou inspeção segura do código-fonte antes do build.
+- [x] Implementar importação real de repositórios GitHub e Git com clone ou inspeção segura do código-fonte antes do build.
 - [x] Detectar frameworks pelo conteúdo de repositórios e ZIPs, analisando manifestos de Android, Flutter e React Native.
 - [x] Validar no servidor URLs HTTPS e SSH de Git e rejeitar ZIPs sem estrutura de projeto reconhecível.
-- [ ] Criar a fila de builds com estados, cancelamento, progresso, histórico e logs em streaming.
+- [x] Criar a fila de builds com estados, cancelamento, progresso, histórico e logs em streaming.
 - [x] Criar registro de workers local, GitHub Actions e Docker com token, heartbeat e estado online/offline.
 - [x] Implementar armazenamento seguro de APK, AAB e keystore com metadados, expiração e links temporários de download.
 - [x] Integrar modelos de IA para resumir falhas de build, explicar causas e propor correções estruturadas.
 - [x] Implementar revisão supervisionada de correções de IA com diff, aceite explícito e histórico de aplicação.
 - [x] Criar catálogo de templates para loja, catálogo, IPTV, delivery, agenda e WebView com geração de projeto inicial.
-- [ ] Implementar formulário de conversão de site em APK com URL, nome, ícone, splash, permissões e configuração WebView.
-- [ ] Implementar gestão de keystore, incremento de versão e preparação de releases APK/AAB.
+- [x] Implementar formulário de conversão de site em APK com URL, nome, ícone, splash, permissões e configuração WebView.
+- [x] Implementar gestão de keystore, incremento de versão e preparação de releases APK/AAB.
 - [x] Criar painel administrativo para usuários, papéis, limites de builds e eventos de auditoria.
 - [x] Criar exportação e restauração de backup de configurações, projetos e metadados.
 - [x] Configurar alertas ao proprietário em fila, sucesso e falha de builds, com resumo e link de artefato.
 - [x] Implementar um agente worker distribuível que clone fontes, aplique patches aprovados, execute Gradle/Flutter/React Native e envie artefatos.
-- [ ] Substituir a atualização por polling de logs por streaming SSE ou WebSocket quando houver infraestrutura de workers sempre ativa.
-- [ ] Adicionar upload de ícone e splash screen ao fluxo WebView e incluir os metadados no worker de geração do APK.
-- [ ] Implementar incremento de versão e uso controlado da keystore pelo agente de build sem expor o material secreto ao navegador.
-- [ ] Implementar inspeção segura de repositórios GitHub e Git por manifestos reais antes de o agente iniciar o build.
-- [ ] Adicionar política persistida de expiração a artefatos e metadados completos para acesso seguro a materiais de assinatura.
+- [x] Substituir a atualização por polling de logs por streaming SSE ou WebSocket quando houver infraestrutura de workers sempre ativa.
+- [x] Adicionar upload de ícone e splash screen ao fluxo WebView e incluir os metadados no worker de geração do APK.
+- [x] Implementar incremento de versão e uso controlado da keystore pelo agente de build sem expor o material secreto ao navegador.
+- [x] Implementar inspeção segura de repositórios GitHub e Git por manifestos reais antes de o agente iniciar o build.
+- [x] Documentar no fluxo de importação que o clone e a inspeção de fontes Git ocorrem no worker antes da execução do build.
+- [x] Adicionar teste automatizado para a detecção de framework por manifestos em uma árvore de fonte clonada.
+- [x] Remover o polling de detalhes da tela de builds quando o canal SSE estiver conectado e validar o stream com um fluxo autenticado.
+- [x] Adicionar política persistida de expiração a artefatos e metadados completos para acesso seguro a materiais de assinatura.
 - [x] Ampliar a restauração de backup para configurações, workers e metadados exportados além de projetos ausentes.
 - [x] Incluir um link seguro e temporário de artefato ou do build nas notificações de sucesso e falha enviadas ao proprietário.
 - [x] Restaurar metadados de signing keys exportados ou documentar sua indisponibilidade de restauração por segurança.
-- [ ] Incluir link seguro para o detalhe do build em alertas de falha, mantendo URL temporária de artefato nos alertas de sucesso.
-- [ ] Escrever testes Vitest para regras de autorização, estados de build, expiração de artefatos e propostas de correção.
+- [x] Incluir link seguro para o detalhe do build em alertas de falha, mantendo URL temporária de artefato nos alertas de sucesso.
+- [x] Escrever testes Vitest para regras de autorização, estados de build, expiração de artefatos e propostas de correção.
 - [x] Validar rotas e interações no navegador, revisar logs e corrigir problemas de responsividade.
-- [ ] Testar interações reais das telas principais, incluindo navegação, abertura de formulários e estados de sucesso ou erro sem criar dados de demonstração persistentes.
-- [ ] Validar a navegação e os controles em desktop e mobile, registrando a ausência de erros de console e rede nos fluxos acionados.
+- [x] Testar interações reais das telas principais, incluindo navegação, abertura de formulários e estados de sucesso ou erro sem criar dados de demonstração persistentes.
+- [x] Validar a navegação e os controles em desktop e mobile, registrando a ausência de erros de console e rede nos fluxos acionados.
+- [x] Executar as migrações em um banco ou esquema limpo isolado e comparar o resultado com o modelo BuildForge.
+- [x] Validar o SSE em uma sessão autenticada com um build emitindo status e logs ao vivo.
+- [x] Ampliar Vitest com regras de autorização operacional, expiração de artefatos e transições de correções de IA.
+- [x] Executar testes interativos autenticados de sucesso e erro nas telas Projects, Builds, Workers, Releases, Backups e Administração.
 - [x] Criar checkpoint final da plataforma pronta para publicação permanente.
