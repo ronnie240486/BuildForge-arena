@@ -69,4 +69,4 @@
 - [x] Adicionar cadastro e login de clientes por e-mail e senha, com hash seguro de senha, sessão persistente e validação de dados.
 - [x] Separar o acesso comercial público do painel protegido, redirecionando clientes autenticados ao workspace adequado.
 - [ ] Validar os fluxos de cadastro, login, logout e bloqueio de páginas privadas no navegador.
-- [ ] Salvar checkpoint da versão com landing comercial e portal de clientes.
+- [x] Salvar checkpoint da versão com landing comercial e portal de clientes.
