@@ -108,6 +108,8 @@ export default function NewProjectPage() {
           {tabs.map((t) => (
             <button
               key={t.id}
+              type="button"
+              aria-pressed={source === t.id}
               onClick={() => setSource(t.id)}
               className={`flex flex-col items-center gap-1 rounded-xl px-3 py-3 text-center text-sm font-medium transition-colors ${
                 source === t.id
