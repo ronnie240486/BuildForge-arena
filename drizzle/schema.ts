@@ -248,6 +248,24 @@ export const notifications = mysqlTable(
   (table) => [index("notifications_status_created_idx").on(table.status, table.createdAt)],
 );
 
+export const webhooks = mysqlTable(
+  "webhooks",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerId: int("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 120 }).notNull(),
+    url: varchar("url", { length: 2048 }).notNull(),
+    events: json("events").$type<string[]>().notNull(),
+    secret: varchar("secret", { length: 512 }),
+    enabled: boolean("enabled").notNull().default(true),
+    lastStatus: varchar("last_status", { length: 80 }),
+    lastDeliveredAt: timestamp("last_delivered_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (table) => [index("webhooks_owner_created_idx").on(table.ownerId, table.createdAt)],
+);
+
 export const backups = mysqlTable(
   "backups",
   {

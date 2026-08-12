@@ -5,15 +5,18 @@ import {
   analyzeBuildWithAi,
   claimBuildForWorker,
   completeWorkerBuild,
+  createWebhook,
   createWorkspaceBackup,
   createWebviewProject,
   createBuild,
   createProject,
   createTemplateProject,
+  generateStarterApp,
   getArtifactDownload,
   getBuildDetails,
   getDashboardData,
   getBackupDownload,
+  deleteWebhook,
   listAuditEvents,
   listArtifacts,
   listBuilds,
@@ -23,6 +26,8 @@ import {
   listSigningKeys,
   listUsersForAdmin,
   listWorkers,
+  listWebhooks,
+  planProjectMigration,
   heartbeatWorker,
   registerWorker,
   requestBuildCancellation,
@@ -288,6 +293,30 @@ export const buildforgeRouter = router({
       } catch (error) {
         throw toTrpcError(error);
       }
+    }),
+  }),
+  studio: router({
+    generateApp: protectedProcedure.input(z.object({ name: z.string().trim().min(2).max(180), framework: z.enum(["android", "flutter", "react_native"]), prompt: z.string().trim().min(12).max(6000) })).mutation(async ({ ctx, input }) => {
+      try { return await generateStarterApp({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    planMigration: protectedProcedure.input(z.object({ target: z.enum(["android", "flutter", "react_native"]), sourceDescription: z.string().trim().min(12).max(8000) })).mutation(async ({ ctx, input }) => {
+      try { return await planProjectMigration({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+  }),
+  webhooks: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      try { return await listWebhooks(actorFromUser(ctx.user)); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    create: protectedProcedure.input(z.object({ name: z.string().trim().min(2).max(120), url: z.string().url().max(2048), events: z.array(z.enum(["build_queued", "build_succeeded", "build_failed"])).min(1).max(3), secret: z.string().max(512).optional() })).mutation(async ({ ctx, input }) => {
+      try { return await createWebhook({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    delete: protectedProcedure.input(z.object({ webhookId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      try { await deleteWebhook({ actor: actorFromUser(ctx.user), webhookId: input.webhookId }); return { success: true }; }
+      catch (error) { throw toTrpcError(error); }
     }),
   }),
   admin: router({

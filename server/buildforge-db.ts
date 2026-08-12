@@ -1,6 +1,6 @@
 import { and, count, desc, eq, sql } from "drizzle-orm";
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
-import { strFromU8, unzipSync } from "fflate";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import {
   aiFixes,
   artifacts,
@@ -13,6 +13,7 @@ import {
   projectTemplates,
   signingKeys,
   users,
+  webhooks,
   webviewApps,
   workers,
 } from "../drizzle/schema";
@@ -32,6 +33,15 @@ export function isPlatformAdmin(actor: PlatformActor) {
 
 function projectScope(actor: PlatformActor) {
   return isPlatformAdmin(actor) ? undefined : eq(projects.ownerId, actor.id);
+}
+
+function validateWebhookUrl(value: string) {
+  let url: URL;
+  try { url = new URL(value); } catch { throw new Error("Informe uma URL HTTPS de webhook válida."); }
+  if (url.protocol !== "https:") throw new Error("Webhooks aceitam apenas URLs HTTPS.");
+  const host = url.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".local") || /^127\.|^0\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) throw new Error("O endereço de webhook não pode apontar para rede local.");
+  return url.toString();
 }
 
 export function inferFramework(reference: string) {
@@ -66,6 +76,47 @@ async function emitBuildNotification(input: { buildId: number; event: "build_que
     console.warn("[BuildForge] Falha ao disparar notificação do proprietário:", error);
   }
   await db.update(notifications).set({ status: sent ? "sent" : "failed", sentAt: sent ? new Date() : null }).where(eq(notifications.id, Number(result.insertId)));
+  void dispatchBuildWebhooks(input);
+}
+
+async function dispatchBuildWebhooks(input: { buildId: number; event: "build_queued" | "build_succeeded" | "build_failed"; summary: string; artifactId?: number }) {
+  const db = await getDb();
+  if (!db) return;
+  const [build] = await db.select({ projectId: builds.projectId, ownerId: projects.ownerId }).from(builds).innerJoin(projects, eq(builds.projectId, projects.id)).where(eq(builds.id, input.buildId)).limit(1);
+  if (!build) return;
+  const targets = await db.select().from(webhooks).where(and(eq(webhooks.ownerId, build.ownerId), eq(webhooks.enabled, true)));
+  const payload = JSON.stringify({ event: input.event, buildId: input.buildId, projectId: build.projectId, summary: input.summary, artifactId: input.artifactId ?? null, occurredAt: new Date().toISOString() });
+  await Promise.all(targets.filter((target) => target.events.includes(input.event)).map(async (target) => {
+    let status = "failed";
+    try {
+      const response = await fetch(target.url, { method: "POST", headers: { "content-type": "application/json", "x-buildforge-event": input.event, ...(target.secret ? { "x-buildforge-signature": `sha256=${createHmac("sha256", target.secret).update(payload).digest("hex")}` } : {}) }, body: payload, signal: AbortSignal.timeout(8_000) });
+      status = response.ok ? `sent:${response.status}` : `failed:${response.status}`;
+    } catch { status = "failed:network"; }
+    await db.update(webhooks).set({ lastStatus: status, lastDeliveredAt: new Date() }).where(eq(webhooks.id, target.id));
+  }));
+}
+
+export async function listWebhooks(actor: PlatformActor) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  return db.select().from(webhooks).where(eq(webhooks.ownerId, actor.id)).orderBy(desc(webhooks.createdAt));
+}
+
+export async function createWebhook(input: { actor: PlatformActor; name: string; url: string; events: Array<"build_queued" | "build_succeeded" | "build_failed">; secret?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [result] = await db.insert(webhooks).values({ ownerId: input.actor.id, name: input.name.trim(), url: validateWebhookUrl(input.url), events: input.events, secret: input.secret?.trim() || null });
+  await addAuditLog({ actorId: input.actor.id, action: "webhook.created", entityType: "webhook", entityId: String(result.insertId), metadata: { events: input.events } });
+  return { id: Number(result.insertId) };
+}
+
+export async function deleteWebhook(input: { actor: PlatformActor; webhookId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [existing] = await db.select().from(webhooks).where(eq(webhooks.id, input.webhookId)).limit(1);
+  if (!existing || existing.ownerId !== input.actor.id) throw new Error("Webhook não encontrado ou não autorizado.");
+  await db.delete(webhooks).where(eq(webhooks.id, input.webhookId));
+  await addAuditLog({ actorId: input.actor.id, action: "webhook.deleted", entityType: "webhook", entityId: String(input.webhookId) });
 }
 
 export async function getDashboardData(actor: PlatformActor) {
@@ -704,6 +755,58 @@ export async function setAiFixStatus(actor: PlatformActor, fixId: number, status
   if (row.fix.status !== "proposed") throw new Error("Esta proposta já foi decidida.");
   await db.update(aiFixes).set({ status }).where(eq(aiFixes.id, fixId));
   await addAuditLog({ actorId: actor.id, action: `ai.fix_${status}`, entityType: "ai_fix", entityId: String(fixId), metadata: { buildId: row.fix.buildId } });
+}
+
+type StarterAppBlueprint = {
+  projectName: string;
+  framework: "android" | "flutter" | "react_native";
+  summary: string;
+  files: Array<{ path: string; content: string }>;
+};
+
+async function chooseBuildForgeModel() {
+  const models = await listLLMModels();
+  return models.data.find((model) => model.id === "gpt-5-mini")?.id ?? models.data.find((model) => model.id.startsWith("gpt-5"))?.id ?? models.data[0]?.id;
+}
+
+export async function generateStarterApp(input: { actor: PlatformActor; name: string; framework: "android" | "flutter" | "react_native"; prompt: string }) {
+  const model = await chooseBuildForgeModel();
+  const response = await invokeLLM({
+    model,
+    maxTokens: 8000,
+    messages: [
+      { role: "system", content: "Você cria um projeto inicial móvel seguro e mínimo. Nunca inclua segredos, chaves ou dependências não oficiais. Retorne apenas arquivos essenciais que compilam como um esqueleto." },
+      { role: "user", content: `Crie um esqueleto ${input.framework} para o aplicativo ${input.name}. Requisito: ${input.prompt.slice(0, 6000)}. Produza no máximo 8 arquivos essenciais, sem binários e sem conteúdo superior a 12000 caracteres por arquivo.` },
+    ],
+    responseFormat: { type: "json_schema", json_schema: { name: "starter_mobile_app", strict: true, schema: { type: "object", properties: { projectName: { type: "string" }, framework: { type: "string", enum: ["android", "flutter", "react_native"] }, summary: { type: "string" }, files: { type: "array", minItems: 1, maxItems: 8, items: { type: "object", properties: { path: { type: "string" }, content: { type: "string" } }, required: ["path", "content"], additionalProperties: false } } }, required: ["projectName", "framework", "summary", "files"], additionalProperties: false } } },
+  });
+  const content = response.choices[0]?.message.content;
+  if (typeof content !== "string") throw new Error("A IA não retornou um projeto utilizável.");
+  let blueprint: StarterAppBlueprint;
+  try { blueprint = JSON.parse(content) as StarterAppBlueprint; } catch { throw new Error("A IA retornou um projeto em formato inválido."); }
+  const safeFiles = blueprint.files.slice(0, 8).map((file) => ({ path: file.path.replace(/^\/+/, "").replace(/\.\.(\/|\\)/g, ""), content: file.content.slice(0, 12000) })).filter((file) => file.path && file.content);
+  if (!safeFiles.length) throw new Error("A IA não retornou arquivos válidos.");
+  const created = await createProject({ actor: input.actor, name: input.name.trim(), description: blueprint.summary.slice(0, 5000), source: "zip", reference: `${blueprint.framework}-generated` });
+  const archive = Buffer.from(zipSync(Object.fromEntries(safeFiles.map((file) => [file.path, strToU8(file.content)]))));
+  await uploadProjectZip({ actor: input.actor, projectId: created.id, filename: `${safeFilename(input.name)}-starter.zip`, contentBase64: archive.toString("base64") });
+  await addAuditLog({ actorId: input.actor.id, action: "ai.starter_app_generated", entityType: "project", entityId: String(created.id), metadata: { framework: blueprint.framework, files: safeFiles.map((file) => file.path), model } });
+  return { projectId: created.id, framework: blueprint.framework, summary: blueprint.summary, files: safeFiles.map((file) => file.path), model };
+}
+
+export async function planProjectMigration(input: { actor: PlatformActor; target: "android" | "flutter" | "react_native"; sourceDescription: string }) {
+  const model = await chooseBuildForgeModel();
+  const response = await invokeLLM({
+    model,
+    maxTokens: 5000,
+    messages: [
+      { role: "system", content: "Você é um arquiteto mobile. Gere um plano técnico conciso, sem executar comandos e sem inventar dependências. O plano deve indicar etapas, riscos, validação e estimativa qualitativa." },
+      { role: "user", content: `Planeje a migração para ${input.target}. Contexto do projeto: ${input.sourceDescription.slice(0, 8000)}` },
+    ],
+  });
+  const plan = response.choices[0]?.message.content;
+  if (typeof plan !== "string" || !plan.trim()) throw new Error("A IA não retornou um plano utilizável.");
+  await addAuditLog({ actorId: input.actor.id, action: "ai.migration_planned", entityType: "migration", entityId: input.target, metadata: { model } });
+  return { plan: plan.slice(0, 30000), model };
 }
 
 export async function createWorkspaceBackup(actor: PlatformActor) {

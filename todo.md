@@ -46,3 +46,20 @@
 - [x] Ampliar Vitest com regras de autorização operacional, expiração de artefatos e transições de correções de IA.
 - [x] Executar testes interativos autenticados de sucesso e erro nas telas Projects, Builds, Workers, Releases, Backups e Administração.
 - [x] Criar checkpoint final da plataforma pronta para publicação permanente.
+- [x] Localizar no projeto original do ZIP os componentes, rotas e ações responsáveis por criar token, abrir o FMD e disparar o SDK.
+- [x] Mapear as variáveis, dependências e permissões necessárias ao fluxo original antes da migração.
+- [x] Integrar o fluxo original de token e FMD à plataforma atual sem remover projetos, builds, workers ou IA.
+- [ ] Validar no navegador a criação de token e o acionamento automático do FMD/SDK com tratamento de erro claro.
+- [x] Salvar um checkpoint de recuperação que preserve simultaneamente as funções originais e a nova plataforma.
+- [x] Inventariar todas as páginas, componentes, bibliotecas, rotas de API e arquivos de configuração do ZIP original.
+- [x] Consolidar o inventário dos arquivos de configuração originais — dependências, TypeScript, Next, Drizzle, deploy, ambiente e scripts — no plano de migração.
+- [ ] Migrar as páginas originais de builds, detalhes de projetos, criação, workers, toolchain, tutorial, webhooks e configurações para rotas equivalentes.
+- [x] Migrar o instalador de worker para Windows, macOS e Linux, o script de agente, o diagnóstico e o workflow GitHub Actions.
+- [x] Migrar as ações originais de projeto, build, plataforma, IA e automação para a API atual com autorização e persistência compatíveis.
+- [ ] Comparar os detalhes visuais e ações secundárias das telas originais de projeto e build com suas rotas atuais, acrescentando os controles ainda ausentes.
+- [ ] Validar na interface o modal pós-token e os quatro downloads recuperados: Windows, Linux/macOS, diagnóstico e workflow GitHub.
+- [x] Integrar o FMD ou registrar tecnicamente a origem e o modo de abertura automática caso esteja implementado fora do ZIP.
+- [ ] Obter a origem, instalador ou especificação externa do FMD caso o usuário deseje integrá-lo além do fluxo equivalente existente no ZIP.
+- [ ] Produzir uma matriz de paridade por ação do ZIP — projetos, detalhes, builds, settings, toolchain, IA, webhooks e automações — e migrar as lacunas verificadas.
+- [ ] Documentar na interface e na operação que o fluxo equivalente disponível é token → instalador → doctor → worker → Android SDK, enquanto FMD externo requer fonte ou especificação separada.
+- [ ] Comparar sistematicamente a cobertura do ZIP com a plataforma unificada e corrigir todas as lacunas encontradas.

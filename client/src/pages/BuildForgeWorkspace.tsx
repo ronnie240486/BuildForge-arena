@@ -10,7 +10,12 @@ import NotFound from "@/pages/NotFound";
 import ProjectsPage from "@/pages/Projects";
 import ReleasesPage from "@/pages/Releases";
 import TemplatesPage from "@/pages/Templates";
+import SettingsPage from "@/pages/Settings";
+import StudioPage from "@/pages/Studio";
+import ToolchainPage from "@/pages/Toolchain";
+import TutorialPage from "@/pages/Tutorial";
 import WorkersPage from "@/pages/Workers";
+import WebhooksPage from "@/pages/Webhooks";
 
 const pages: Record<string, React.ComponentType> = {
   "/": DashboardPage,
@@ -22,6 +27,11 @@ const pages: Record<string, React.ComponentType> = {
   "/assistant": AiAssistantPage,
   "/templates": TemplatesPage,
   "/releases": ReleasesPage,
+  "/settings": SettingsPage,
+  "/studio": StudioPage,
+  "/toolchain": ToolchainPage,
+  "/tutorial": TutorialPage,
+  "/webhooks": WebhooksPage,
   "/admin": AdminPage,
 };
 

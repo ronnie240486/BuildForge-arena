@@ -16,8 +16,12 @@ import {
   Rocket,
   ShieldCheck,
   Sparkles,
+  WandSparkles,
+  BookOpen,
+  Settings2,
   Sun,
   UsersRound,
+  Webhook,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Avatar, AvatarFallback } from "./ui/avatar";
@@ -33,8 +37,13 @@ const items = [
   { icon: HardDriveDownload, label: "Artefatos", path: "/artifacts" },
   { icon: ArchiveRestore, label: "Backups", path: "/backups" },
   { icon: Bot, label: "Assistente IA", path: "/assistant" },
+  { icon: WandSparkles, label: "Studio IA", path: "/studio" },
   { icon: Sparkles, label: "Templates", path: "/templates" },
   { icon: Rocket, label: "Releases", path: "/releases" },
+  { icon: Cpu, label: "Toolchain", path: "/toolchain" },
+  { icon: BookOpen, label: "Tutorial", path: "/tutorial" },
+  { icon: Settings2, label: "Configurações", path: "/settings" },
+  { icon: Webhook, label: "Webhooks", path: "/webhooks" },
   { icon: UsersRound, label: "Administração", path: "/admin", adminOnly: true },
 ];
 
