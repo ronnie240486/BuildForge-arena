@@ -1,0 +1,12 @@
+# Força o Railway/Nixpacks a usar Node.js 20 (o Next.js 16 exige Node 20+).
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm ci || npm install"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "next start -H 0.0.0.0 -p ${PORT:-3000}"
