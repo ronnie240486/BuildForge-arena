@@ -42,14 +42,14 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
 }
 
 describe("auth.logout", () => {
-  it("clears the session cookie and reports success", async () => {
+  it("clears both administrative and client session cookies and reports success", async () => {
     const { ctx, clearedCookies } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
 
     const result = await caller.auth.logout();
 
     expect(result).toEqual({ success: true });
-    expect(clearedCookies).toHaveLength(1);
+    expect(clearedCookies).toHaveLength(2);
     expect(clearedCookies[0]?.name).toBe(COOKIE_NAME);
     expect(clearedCookies[0]?.options).toMatchObject({
       maxAge: -1,
@@ -57,6 +57,10 @@ describe("auth.logout", () => {
       sameSite: "none",
       httpOnly: true,
       path: "/",
+    });
+    expect(clearedCookies[1]).toMatchObject({
+      name: "bf_client_session",
+      options: { secure: true, sameSite: "lax", httpOnly: true, path: "/" },
     });
   });
 });

@@ -1,5 +1,4 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -57,7 +56,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500 text-white"><Boxes className="h-6 w-6" /></div>
           <h1 className="mt-6 text-2xl font-semibold">Acesse a BuildForge</h1>
           <p className="mt-2 text-sm leading-6 text-slate-400">Entre para criar projetos, acompanhar builds e administrar seus artefatos com segurança.</p>
-          <Button onClick={() => startLogin()} className="mt-7 h-11 w-full bg-indigo-600 hover:bg-indigo-500">Entrar com Manus</Button>
+          <Button onClick={() => window.location.href = "/login"} className="mt-7 h-11 w-full bg-indigo-600 hover:bg-indigo-500">Entrar ou criar conta</Button>
         </section>
       </main>
     );

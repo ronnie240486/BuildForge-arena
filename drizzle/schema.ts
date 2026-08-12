@@ -33,6 +33,7 @@ export const users = mysqlTable(
     name: text("name"),
     email: varchar("email", { length: 320 }),
     loginMethod: varchar("loginMethod", { length: 64 }),
+    passwordHash: varchar("password_hash", { length: 255 }),
     role: userRole.notNull().default("member"),
     buildLimit: int("buildLimit").notNull().default(3),
     buildsUsed: int("buildsUsed").notNull().default(0),
@@ -45,13 +46,26 @@ export const users = mysqlTable(
 );
 
 type DatabaseUser = typeof users.$inferSelect;
-export type User = Omit<DatabaseUser, "role" | "buildLimit" | "buildsUsed" | "avatarColor"> & {
+export type User = Omit<DatabaseUser, "role" | "buildLimit" | "buildsUsed" | "avatarColor" | "passwordHash"> & {
   role: "admin" | "member" | "user";
   buildLimit?: number;
   buildsUsed?: number;
   avatarColor?: string;
 };
 export type InsertUser = typeof users.$inferInsert;
+
+export const clientSessions = mysqlTable(
+  "client_sessions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+  },
+  (table) => [index("client_sessions_user_expires_idx").on(table.userId, table.expiresAt)],
+);
 
 export const projects = mysqlTable(
   "projects",

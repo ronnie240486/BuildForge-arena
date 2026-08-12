@@ -63,3 +63,10 @@
 - [ ] Produzir uma matriz de paridade por ação do ZIP — projetos, detalhes, builds, settings, toolchain, IA, webhooks e automações — e migrar as lacunas verificadas.
 - [ ] Documentar na interface e na operação que o fluxo equivalente disponível é token → instalador → doctor → worker → Android SDK, enquanto FMD externo requer fonte ou especificação separada.
 - [ ] Comparar sistematicamente a cobertura do ZIP com a plataforma unificada e corrigir todas as lacunas encontradas.
+- [x] Inventariar e documentar os botões, menus, formulários e ações disponíveis na interface BuildForge.
+- [x] Entregar um guia de uso em português para navegação, projetos, builds, workers, IA, releases e administração.
+- [x] Criar a landing page comercial explicando geração de APK/AAB, workers, IA, segurança e chamadas para cadastro e login.
+- [x] Adicionar cadastro e login de clientes por e-mail e senha, com hash seguro de senha, sessão persistente e validação de dados.
+- [x] Separar o acesso comercial público do painel protegido, redirecionando clientes autenticados ao workspace adequado.
+- [ ] Validar os fluxos de cadastro, login, logout e bloqueio de páginas privadas no navegador.
+- [ ] Salvar checkpoint da versão com landing comercial e portal de clientes.
