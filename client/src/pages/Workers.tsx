@@ -1,0 +1,53 @@
+import { useState } from "react";
+import { Activity, Check, CircleOff, Copy, Cpu, LoaderCircle, MonitorCog, Plus, TerminalSquare, X } from "lucide-react";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
+import { formatDate } from "@/lib/buildforge";
+
+const capabilityOptions = [
+  { value: "android", label: "Android / Gradle" },
+  { value: "flutter", label: "Flutter" },
+  { value: "react_native", label: "React Native" },
+  { value: "webview", label: "WebView" },
+  { value: "all", label: "Todas as stacks" },
+];
+
+export default function WorkersPage() {
+  const [open, setOpen] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [kind, setKind] = useState<"local" | "github_actions" | "docker">("local");
+  const [capabilities, setCapabilities] = useState<string[]>(["android"]);
+  const [concurrency, setConcurrency] = useState(1);
+  const workers = trpc.buildforge.workers.list.useQuery(undefined, { refetchInterval: 10_000 });
+  const utils = trpc.useUtils();
+  const register = trpc.buildforge.workers.register.useMutation({
+    onSuccess: (result) => {
+      setToken(result.token);
+      void utils.buildforge.workers.list.invalidate();
+      void utils.buildforge.dashboard.summary.invalidate();
+      toast.success("Worker registrado. Guarde o token antes de fechar esta janela.");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const toggleCapability = (value: string) => {
+    if (value === "all") return setCapabilities((current) => current.includes("all") ? [] : ["all"]);
+    setCapabilities((current) => {
+      const withoutAll = current.filter((item) => item !== "all");
+      return withoutAll.includes(value) ? withoutAll.filter((item) => item !== value) : [...withoutAll, value];
+    });
+  };
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!name.trim() || !capabilities.length) return;
+    register.mutate({ name: name.trim(), kind, capabilities, maxConcurrency: concurrency });
+  };
+  const copyToken = async () => {
+    if (!token) return;
+    await navigator.clipboard.writeText(token);
+    toast.success("Token copiado para a área de transferência.");
+  };
+
+  return <div className="mx-auto max-w-7xl space-y-6 pb-8"><header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Workers</h1><p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Conecte máquinas locais, GitHub Actions e Docker para processar sua fila.</p></div><button onClick={() => { setToken(null); setOpen(true); }} className="inline-flex h-11 items-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-500"><Plus className="h-4 w-4" /> Registrar worker</button></header><section className="grid gap-4 md:grid-cols-3"><article className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 dark:border-indigo-900/60 dark:bg-indigo-500/10"><MonitorCog className="h-6 w-6 text-indigo-600 dark:text-indigo-300" /><h2 className="mt-4 font-semibold text-slate-950 dark:text-white">Máquina local</h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Execute o agente seguro e vincule pelo token gerado no painel.</p></article><article className="rounded-2xl border border-sky-200 bg-sky-50 p-5 dark:border-sky-900/60 dark:bg-sky-500/10"><TerminalSquare className="h-6 w-6 text-sky-600 dark:text-sky-300" /><h2 className="mt-4 font-semibold text-slate-950 dark:text-white">GitHub Actions</h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Use o workflow para rodar builds em runners hospedados no GitHub.</p></article><article className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-900/60 dark:bg-emerald-500/10"><Cpu className="h-6 w-6 text-emerald-600 dark:text-emerald-300" /><h2 className="mt-4 font-semibold text-slate-950 dark:text-white">Docker</h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Isole SDKs e dependências em containers padronizados.</p></article></section><section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950"><div className="border-b border-slate-100 px-5 py-4 dark:border-slate-800"><h2 className="font-semibold text-slate-950 dark:text-white">Capacidade cadastrada</h2></div>{workers.isLoading ? <div className="grid min-h-48 place-items-center"><LoaderCircle className="h-5 w-5 animate-spin text-indigo-500" /></div> : workers.data?.length ? <div className="divide-y divide-slate-100 dark:divide-slate-800">{workers.data.map((worker) => <div key={worker.id} className="flex items-center gap-4 px-5 py-4"><span className={`flex h-9 w-9 items-center justify-center rounded-xl ${worker.status === "online" ? "bg-emerald-500/15 text-emerald-600" : "bg-slate-100 text-slate-500 dark:bg-slate-800"}`}>{worker.status === "online" ? <Activity className="h-4 w-4" /> : <CircleOff className="h-4 w-4" />}</span><div className="min-w-0 flex-1"><p className="font-semibold text-slate-900 dark:text-white">{worker.name}</p><p className="mt-0.5 text-xs text-slate-500">{worker.kind.replace("_", " ")} · {worker.activeBuilds}/{worker.maxConcurrency} execução(ões) · heartbeat {formatDate(worker.lastHeartbeatAt)}</p></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold capitalize text-slate-600 dark:bg-slate-800 dark:text-slate-300">{worker.status}</span></div>)}</div> : <div className="px-6 py-16 text-center"><Cpu className="mx-auto h-9 w-9 text-slate-300 dark:text-slate-700" /><p className="mt-3 font-semibold text-slate-700 dark:text-slate-200">Nenhum worker conectado</p><p className="mt-1 text-sm text-slate-500">Registre um agente seguro para começar a processar builds reais.</p></div>}</section>{open && <div className="fixed inset-0 z-50 flex items-end bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-6"><form onSubmit={submit} className="w-full max-w-xl rounded-t-3xl bg-white p-6 shadow-2xl dark:bg-slate-950 sm:rounded-3xl"><div className="flex items-start justify-between gap-3"><div><h2 className="text-xl font-semibold text-slate-950 dark:text-white">Registrar worker</h2><p className="mt-1 text-sm text-slate-500">O token é exibido somente uma vez. Armazene-o em um segredo do runner.</p></div><button type="button" onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-5 w-5" /></button></div>{token ? <div className="mt-6"><div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/50 dark:bg-emerald-500/10"><div className="flex items-center gap-2 font-semibold text-emerald-800 dark:text-emerald-200"><Check className="h-4 w-4" /> Token criado</div><p className="mt-2 break-all rounded-xl bg-white/80 p-3 font-mono text-xs text-slate-800 dark:bg-slate-950/70 dark:text-slate-200">{token}</p><button type="button" onClick={copyToken} className="mt-3 inline-flex h-9 items-center gap-2 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white"><Copy className="h-3.5 w-3.5" /> Copiar token</button></div><pre className="mt-4 overflow-auto rounded-xl bg-slate-950 p-4 text-xs leading-5 text-slate-200">{`BUILDFORGE_WORKER_TOKEN=${token}\n# Envie heartbeat e solicite builds usando /api/trpc/buildforge.workers.*`}</pre><button type="button" onClick={() => setOpen(false)} className="mt-5 h-10 w-full rounded-xl bg-slate-900 text-sm font-semibold text-white dark:bg-indigo-600">Concluir</button></div> : <><div className="mt-6 grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nome<input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Mac mini CI" className="mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" /></label><label className="text-sm font-medium text-slate-700 dark:text-slate-300">Tipo<select value={kind} onChange={(e) => setKind(e.target.value as typeof kind)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="local">Máquina local</option><option value="github_actions">GitHub Actions</option><option value="docker">Docker</option></select></label></div><div className="mt-5"><p className="text-sm font-medium text-slate-700 dark:text-slate-300">Capacidades</p><div className="mt-2 grid gap-2 sm:grid-cols-2">{capabilityOptions.map((item) => <label key={item.value} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm ${capabilities.includes(item.value) ? "border-indigo-400 bg-indigo-50 text-indigo-800 dark:border-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-200" : "border-slate-200 text-slate-600 dark:border-slate-800 dark:text-slate-300"}`}><input type="checkbox" checked={capabilities.includes(item.value)} onChange={() => toggleCapability(item.value)} />{item.label}</label>)}</div></div><label className="mt-5 block text-sm font-medium text-slate-700 dark:text-slate-300">Concorrência máxima<input value={concurrency} onChange={(e) => setConcurrency(Math.max(1, Math.min(8, Number(e.target.value))))} type="number" min={1} max={8} className="mt-1.5 h-11 w-28 rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" /></label><div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setOpen(false)} className="h-10 px-3 text-sm font-semibold text-slate-600 dark:text-slate-300">Cancelar</button><button disabled={!name.trim() || !capabilities.length || register.isPending} className="inline-flex h-10 items-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:opacity-50">{register.isPending && <LoaderCircle className="h-4 w-4 animate-spin" />}Criar token</button></div></>}</form></div>}</div>;
+}

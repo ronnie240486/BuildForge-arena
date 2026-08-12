@@ -52,13 +52,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.lastSignedIn = user.lastSignedIn;
       updateSet.lastSignedIn = user.lastSignedIn;
     }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
+    const normalizedRole = user.openId === ENV.ownerOpenId || user.role === "admin" ? "admin" : "member";
+    values.role = normalizedRole;
+    updateSet.role = normalizedRole;
 
     if (!values.lastSignedIn) {
       values.lastSignedIn = new Date();
