@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { LandingHeader } from "@/components/landing-header";
 import {
   GitBranch,
   Boxes,
@@ -44,36 +45,7 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      {/* Nav */}
-      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/80">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-600/30">
-              <Layers className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-lg font-semibold tracking-tight">BuildForge</span>
-          </div>
-          <nav className="hidden items-center gap-8 text-sm text-slate-600 dark:text-slate-300 md:flex">
-            <a href="#features" className="hover:text-indigo-600 dark:hover:text-indigo-400">Recursos</a>
-            <a href="#phases" className="hover:text-indigo-600 dark:hover:text-indigo-400">Roadmap</a>
-            <a href="#how" className="hover:text-indigo-600 dark:hover:text-indigo-400">Como funciona</a>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-            >
-              Entrar
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-indigo-600/20 hover:bg-indigo-500"
-            >
-              Entrar
-            </Link>
-          </div>
-        </div>
-      </header>
+      <LandingHeader />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
@@ -103,12 +75,12 @@ export default async function LandingPage() {
               >
                 Entrar na plataforma <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link
-                href="/login"
+              <a
+                href="#how"
                 className="inline-flex h-12 items-center gap-2 rounded-xl border border-slate-300 px-6 text-base font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               >
-                <Terminal className="h-4 w-4" /> Ver o demo
-              </Link>
+                <Terminal className="h-4 w-4" /> Ver como funciona
+              </a>
             </div>
             <p className="mt-4 text-xs text-slate-400">
               Peça acesso para começar seu teste grátis.
