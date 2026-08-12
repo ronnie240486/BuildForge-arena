@@ -595,6 +595,20 @@ export async function heartbeatWorker(input: { token: string; activeBuilds?: num
   return { workerId: worker.id, status: "online", maxConcurrency: worker.maxConcurrency };
 }
 
+export async function getFmdStatus(token: string) {
+  const { worker } = await getWorkerByToken(token);
+  const stale = !worker.lastHeartbeatAt || worker.lastHeartbeatAt.getTime() < Date.now() - 2 * 60 * 1000;
+  const status = worker.status === "online" && !stale ? "online" : "offline";
+  return { workerId: worker.id, workerName: worker.name, status, lastHeartbeatAt: worker.lastHeartbeatAt, activeBuilds: worker.activeBuilds, maxConcurrency: worker.maxConcurrency, doctorStatus: worker.doctorStatus, doctorChecks: worker.doctorChecks, doctorCheckedAt: worker.doctorCheckedAt };
+}
+
+export async function reportFmdDoctor(input: { token: string; status: "ready" | "failed"; checks: { name: string; ok: boolean; detail?: string }[] }) {
+  const { db, worker } = await getWorkerByToken(input.token);
+  const checks = input.checks.slice(0, 12).map((check) => ({ name: check.name.slice(0, 100), ok: Boolean(check.ok), detail: check.detail?.slice(0, 160) }));
+  await db.update(workers).set({ doctorStatus: input.status, doctorChecks: checks, doctorCheckedAt: new Date() }).where(eq(workers.id, worker.id));
+  return { status: input.status, checkedAt: new Date() };
+}
+
 export async function claimBuildForWorker(token: string) {
   const { db, worker } = await getWorkerByToken(token);
   await heartbeatWorker({ token, activeBuilds: worker.activeBuilds });

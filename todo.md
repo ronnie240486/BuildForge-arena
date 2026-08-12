@@ -69,4 +69,13 @@
 - [x] Adicionar cadastro e login de clientes por e-mail e senha, com hash seguro de senha, sessão persistente e validação de dados.
 - [x] Separar o acesso comercial público do painel protegido, redirecionando clientes autenticados ao workspace adequado.
 - [ ] Validar os fluxos de cadastro, login, logout e bloqueio de páginas privadas no navegador.
-- [x] Salvar checkpoint da versão com landing comercial e portal de clientes.
+- [ ] Salvar checkpoint da versão com landing comercial e portal de clientes.
+- [x] Definir o FMD como fluxo de preparação de máquina compatível com token, worker, Android SDK, Java, Git, Node e Flutter.
+- [x] Criar endpoints FMD de diagnóstico e geração de comandos seguros por sistema operacional.
+- [x] Criar a área FMD no painel com token, diagnóstico, comando de início e status de preparação.
+- [x] Exibir no FMD o estado real do token, do diagnóstico executado localmente e da conexão do worker após o bootstrap.
+- [x] Receber e persistir o resultado do Doctor no servidor para exibir diagnóstico concluído ou falhou na tela FMD.
+- [ ] Validar o FMD com token válido e inválido, diagnóstico reportado e worker conectado, sem executar instalações remotas.
+- [ ] Validar no navegador os estados de token ausente, bootstrap bloqueado e ambiente pronto para conexão.
+- [x] Validar as rotas e os comandos do FMD sem executar instalações remotas não autorizadas.
+- [ ] Salvar checkpoint da integração FMD.

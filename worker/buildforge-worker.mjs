@@ -13,8 +13,9 @@ import { promisify } from "node:util";
 import { unzipSync } from "fflate";
 
 const exec = promisify(execFile);
-const baseUrl = (process.env.BUILDFORGE_URL || "").replace(/\/$/, "");
-const token = process.env.MANUS_WORKER_TOKEN || "";
+function cliValue(flag) { const index = process.argv.indexOf(flag); return index >= 0 ? process.argv[index + 1] || "" : ""; }
+const baseUrl = (process.env.BUILDFORGE_URL || cliValue("--server") || "").replace(/\/$/, "");
+const token = process.env.MANUS_WORKER_TOKEN || cliValue("--token") || "";
 const intervalMs = Number(process.env.BUILDFORGE_POLL_MS || 15_000);
 const isMain = Boolean(process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href);
 if (isMain && (!baseUrl || !token)) throw new Error("Defina BUILDFORGE_URL e MANUS_WORKER_TOKEN antes de iniciar o agente.");
@@ -28,6 +29,30 @@ async function request(path, body = {}) {
 
 async function sendLog(buildId, sequence, level, message, progress) {
   await request("/api/worker/log", { buildId, sequence, level, message: String(message).slice(0, 10_000), progress });
+}
+
+async function doctorCheck(name, command, args = [], required = true) {
+  try {
+    const { stdout, stderr } = await exec(command, args, { timeout: 20_000, maxBuffer: 20_000 });
+    const detail = String(stdout || stderr || "encontrado").trim().split("\n")[0].slice(0, 160);
+    return { name, ok: true, detail, required };
+  } catch {
+    return { name, ok: false, detail: "não encontrado ou não configurado", required };
+  }
+}
+
+async function runDoctor() {
+  const androidCommand = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT || "sdkmanager";
+  const checks = await Promise.all([
+    doctorCheck("Node.js 20+", "node", ["--version"]),
+    doctorCheck("Git", "git", ["--version"]),
+    doctorCheck("Java/JDK", "java", ["-version"]),
+    doctorCheck("Android SDK", androidCommand, ["--version"]),
+    doctorCheck("Flutter", "flutter", ["--version"], false),
+  ]);
+  const requiredPassed = checks.filter((check) => check.required).every((check) => check.ok);
+  await request("/api/fmd/doctor-report", { status: requiredPassed ? "ready" : "failed", checks: checks.map(({ name, ok, detail }) => ({ name, ok, detail })) });
+  if (!requiredPassed) throw new Error(`Doctor bloqueou o worker: ${checks.filter((check) => check.required && !check.ok).map((check) => check.name).join(", ")}.`);
 }
 
 function safeEntry(name) {
@@ -213,12 +238,19 @@ async function tick() {
 }
 
 async function loop() {
+  await runDoctor();
   for (;;) {
     try { await tick(); } catch (error) { console.error("[BuildForge worker]", error instanceof Error ? error.message : error); }
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 }
 
-if (isMain) loop();
+if (isMain) {
+  if (process.argv.includes("--doctor-only")) {
+    runDoctor().catch((error) => { console.error("[BuildForge Doctor]", error instanceof Error ? error.message : error); process.exitCode = 1; });
+  } else {
+    loop();
+  }
+}
 
 export { detectFrameworkFromSource };

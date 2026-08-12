@@ -16,6 +16,7 @@ import ToolchainPage from "@/pages/Toolchain";
 import TutorialPage from "@/pages/Tutorial";
 import WorkersPage from "@/pages/Workers";
 import WebhooksPage from "@/pages/Webhooks";
+import FmdPage from "@/pages/Fmd";
 
 const pages: Record<string, React.ComponentType> = {
   "/": DashboardPage,
@@ -32,6 +33,7 @@ const pages: Record<string, React.ComponentType> = {
   "/toolchain": ToolchainPage,
   "/tutorial": TutorialPage,
   "/webhooks": WebhooksPage,
+  "/fmd": FmdPage,
   "/admin": AdminPage,
 };
 

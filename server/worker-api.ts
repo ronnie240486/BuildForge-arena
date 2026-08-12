@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import type { Express, Request } from "express";
-import { appendWorkerLog, claimBuildForWorker, completeWorkerBuild, getWorkerSigningMaterial, heartbeatWorker, uploadWorkerArtifact } from "./buildforge-db";
+import { appendWorkerLog, claimBuildForWorker, completeWorkerBuild, getFmdStatus, getWorkerSigningMaterial, heartbeatWorker, reportFmdDoctor, uploadWorkerArtifact } from "./buildforge-db";
 
 function readWorkerToken(request: Request) {
   const authorization = request.header("authorization");
@@ -44,7 +44,29 @@ function githubWorkflow(baseUrl: string) {
   ].join("\n");
 }
 
+function fmdBootstrapScript(baseUrl: string, token: string, os: "windows" | "mac" | "linux") {
+  if (os === "windows") return `@echo off\r\nsetlocal\r\nset "SERVER=${baseUrl}"\r\nset "TOKEN=${token}"\r\nwhere node >nul 2>nul || (echo Node.js 20+ nao encontrado. Instale-o e execute o FMD novamente. & pause & exit /b 1)\r\necho [FMD] Baixando agente e diagnostico...\r\npowershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -UseBasicParsing '%SERVER%/api/worker/script' -OutFile '%~dp0buildforge-worker.mjs'"\r\nnode "%~dp0buildforge-worker.mjs" --server "%SERVER%" --token "%TOKEN%" --doctor-only\r\nif errorlevel 1 (echo [FMD] Corrija os itens do diagnostico antes de iniciar o worker. & pause & exit /b 1)\r\necho [FMD] Ambiente aprovado. Iniciando agente...\r\nnode "%~dp0buildforge-worker.mjs" --server "%SERVER%" --token "%TOKEN%"\r\npause\r\n`;
+  return `#!/usr/bin/env bash\nset -euo pipefail\nSERVER='${baseUrl}'\nTOKEN='${token}'\ncommand -v node >/dev/null || { echo 'Node.js 20+ nao encontrado. Instale-o e execute o FMD novamente.'; exit 1; }\nmkdir -p "$HOME/.buildforge"\ncurl -fsSL "$SERVER/api/worker/script" -o "$HOME/.buildforge/buildforge-worker.mjs"\nnode "$HOME/.buildforge/buildforge-worker.mjs" --server "$SERVER" --token "$TOKEN" --doctor-only || { echo '[FMD] Corrija o diagnostico antes de iniciar o worker.'; exit 1; }\necho '[FMD] Ambiente aprovado. Iniciando agente...'\nnode "$HOME/.buildforge/buildforge-worker.mjs" --server "$SERVER" --token "$TOKEN"\n`;
+}
+
 export function registerWorkerApi(app: Express) {
+  app.get("/api/fmd/requirements", (_req, res) => res.json({ name: "BuildForge Machine Driver", required: ["Node.js 20+", "Git", "Java/JDK 17", "Android SDK", "Build Tools", "platform-tools"], optional: ["Flutter stable", "Docker"] }));
+  app.get("/api/fmd/doctor", (_req, res) => res.type("application/javascript").setHeader("Content-Disposition", "attachment; filename=buildforge-fmd-doctor.js").send(doctorScript()));
+  app.get("/api/fmd/bootstrap", (req, res) => {
+    const token = typeof req.query.token === "string" ? req.query.token.trim() : "";
+    const os = req.query.os === "windows" ? "windows" : req.query.os === "mac" ? "mac" : "linux";
+    if (token.length < 24) return res.status(400).json({ error: "Informe um token de worker válido para iniciar o FMD." });
+    const extension = os === "windows" ? "bat" : os === "mac" ? "command" : "sh";
+    return res.type("text/plain").setHeader("Content-Disposition", `attachment; filename=BuildForge-FMD.${extension}`).send(fmdBootstrapScript(getPublicBaseUrl(req), token, os));
+  });
+  app.post("/api/fmd/status", async (req, res) => {
+    try { const token = readWorkerToken(req); if (!token) return res.status(400).json({ error: "Informe o token do worker para consultar o FMD." }); return res.json(await getFmdStatus(token)); }
+    catch (error) { return sendError(res as never, error); }
+  });
+  app.post("/api/fmd/doctor-report", async (req, res) => {
+    try { const token = readWorkerToken(req); const { status, checks } = req.body ?? {}; if (!token || !["ready", "failed"].includes(status) || !Array.isArray(checks)) return res.status(400).json({ error: "Relatório do Doctor inválido." }); return res.json(await reportFmdDoctor({ token, status, checks })); }
+    catch (error) { return sendError(res as never, error); }
+  });
   app.get("/api/worker/script", async (_req, res) => {
     try { res.type("application/javascript").setHeader("Content-Disposition", "attachment; filename=buildforge-worker.mjs").send(await loadDistributedWorkerScript()); }
     catch (error) { res.status(500).json({ error: error instanceof Error ? error.message : "Não foi possível entregar o agente." }); }

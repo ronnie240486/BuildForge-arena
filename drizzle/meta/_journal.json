@@ -43,6 +43,13 @@
       "when": 1786549130036,
       "tag": "0005_brief_green_goblin",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1786550593425,
+      "tag": "0006_parched_justice",
+      "breakpoints": true
     }
   ]
 }

@@ -21,6 +21,7 @@ import {
   Sun,
   UsersRound,
   Webhook,
+  MonitorCog,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Avatar, AvatarFallback } from "./ui/avatar";
@@ -40,6 +41,7 @@ const items = [
   { icon: Sparkles, label: "Templates", path: "/templates" },
   { icon: Rocket, label: "Releases", path: "/releases" },
   { icon: Cpu, label: "Toolchain", path: "/toolchain" },
+  { icon: MonitorCog, label: "FMD", path: "/fmd" },
   { icon: BookOpen, label: "Tutorial", path: "/tutorial" },
   { icon: Settings2, label: "Configurações", path: "/settings" },
   { icon: Webhook, label: "Webhooks", path: "/webhooks" },
