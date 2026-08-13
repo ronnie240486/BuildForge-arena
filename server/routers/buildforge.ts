@@ -24,6 +24,7 @@ import {
   getBrandingConfig,
   getDashboardData,
   getStudioProjectDetail,
+  importStudioGithubRepository,
   getPublicSystemStatus,
   getPublicReleaseDistribution,
   getBackupDownload,
@@ -496,6 +497,10 @@ export const buildforgeRouter = router({
     }),
     createProject: adminProcedure.input(z.object({ name: z.string().trim().min(2).max(180), projectType: z.enum(["website", "application"]), framework: z.string().trim().min(2).max(40) })).mutation(async ({ ctx, input }) => {
       try { return await createStudioProject({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    importGithub: adminProcedure.input(z.object({ projectId: z.number().int().positive(), repository: z.string().trim().min(3).max(320), branch: z.string().trim().max(180).optional() })).mutation(async ({ ctx, input }) => {
+      try { return await importStudioGithubRepository({ actor: actorFromUser(ctx.user), ...input }); }
       catch (error) { throw toTrpcError(error); }
     }),
     providers: adminProcedure.query(async () => listAiProviderConfigs()),
