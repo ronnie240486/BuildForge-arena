@@ -586,9 +586,9 @@ async function buildJob(job) {
     const localProject = get("project", process.env.BUILDFORGE_PROJECT);
     let srcDir;
     let ok = true;
-    if (project.aiGenerated) {
-      // Projeto criado pela IA: baixa os arquivos gerados do servidor e escreve localmente.
-      await pushLog(buildId, "[worker] Projeto gerado por IA — baixando arquivos do servidor...\n", 8);
+    if (project.aiGenerated || project.source === "zip") {
+      // Projeto gerado por IA OU importado por ZIP: baixa os arquivos do servidor e escreve localmente.
+      await pushLog(buildId, "[worker] Baixando codigo-fonte do servidor...\n", 8);
       const res = await fetch(SERVER + "/api/worker/builds/" + buildId + "/source", {
         headers: { Authorization: "Bearer " + TOKEN },
       });

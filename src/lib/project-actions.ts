@@ -1,13 +1,14 @@
 "use server";
 
 import { db } from "@/db";
-import { projects, builds, aiInsights, notifications, signingConfigs, users } from "@/db/schema";
+import { projects, builds, aiInsights, notifications, signingConfigs, users, generatedFiles } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { detectFramework, healthFromDetection, applyAutoFix } from "@/lib/engine";
 import type { ProjectDetection } from "@/db/schema";
 import { eq, desc, and, inArray, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import AdmZip from "adm-zip";
 
 function githubName(url: string) {
   const m = url.match(/github\.com[/:]([^/]+)\/([^/.?#]+)/i);
@@ -21,19 +22,71 @@ export async function createProject(prevState: unknown, formData: FormData) {
   const repoUrl = String(formData.get("repoUrl") || "").trim();
   const branch = String(formData.get("branch") || "main").trim() || "main";
   const customName = String(formData.get("name") || "").trim();
-  // For ZIP uploads we only receive metadata (name + size), never the binary —
-  // this keeps the Server Action body tiny and avoids the payload-size limit.
-  const zipName = String(formData.get("zipName") || "").trim();
 
   let name = customName;
   let url: string | null = null;
   let detection: ProjectDetection;
+  let extractedFiles: { path: string; content: string }[] = [];
 
   if (source === "zip") {
-    if (!zipName) return { error: "Selecione um arquivo .zip para enviar." };
-    if (!/\.zip$/i.test(zipName)) return { error: "O arquivo precisa ter a extensão .zip." };
-    name = name || zipName.replace(/\.zip$/i, "");
-    detection = detectFramework(name, zipName);
+    const zipFile = formData.get("zipFile");
+    if (!(zipFile instanceof File) || zipFile.size === 0) {
+      return { error: "Selecione um arquivo .zip para enviar." };
+    }
+    if (!/\.zip$/i.test(zipFile.name)) return { error: "O arquivo precisa ter a extensão .zip." };
+    if (zipFile.size > 40 * 1024 * 1024) return { error: "ZIP muito grande (máx. 40MB neste importador)." };
+
+    name = name || zipFile.name.replace(/\.zip$/i, "");
+
+    let entries: AdmZip.IZipEntry[];
+    try {
+      const buf = Buffer.from(await zipFile.arrayBuffer());
+      entries = new AdmZip(buf).getEntries();
+    } catch {
+      return { error: "Não consegui ler esse .zip. O arquivo pode estar corrompido." };
+    }
+
+    // Só guardamos arquivos de TEXTO/código (o que basta para compilar) — pulamos
+    // node_modules, .git, builds e binários grandes (ícones podem ser configurados
+    // depois na página do projeto).
+    const SKIP_DIR = /(^|\/)(node_modules|\.git|build|\.gradle|\.idea|dist|out|\.expo)(\/|$)/i;
+    const TEXT_EXT = /\.(kt|kts|java|xml|gradle|properties|json|ya?ml|dart|js|jsx|mjs|cjs|ts|tsx|html?|css|scss|pro|txt|md|toml|cfg|pbxproj|plist|swift|gitignore|env|sh|bat)$/i;
+    const NAME_OK = /^(settings\.gradle|build\.gradle|gradle\.properties|AndroidManifest\.xml|pubspec\.yaml|package\.json|app\.json|Podfile)$/i;
+
+    let totalBytes = 0;
+    for (const e of entries) {
+      if (e.isDirectory) continue;
+      const p = e.entryName.replace(/^\/+/, "");
+      if (SKIP_DIR.test(p)) continue;
+      const base = p.split("/").pop() || p;
+      if (!TEXT_EXT.test(base) && !NAME_OK.test(base)) continue;
+      if (e.header.size > 400 * 1024) continue; // pula arquivos de texto anormalmente grandes
+      totalBytes += e.header.size;
+      if (totalBytes > 8 * 1024 * 1024) break; // limite total de 8MB de código-fonte
+      let content: string;
+      try {
+        content = e.getData().toString("utf8");
+      } catch {
+        continue;
+      }
+      extractedFiles.push({ path: p, content });
+      if (extractedFiles.length >= 800) break; // limite de arquivos
+    }
+
+    if (extractedFiles.length === 0) {
+      return { error: "Não encontrei arquivos de código reconhecíveis dentro do .zip." };
+    }
+
+    // Detecta o framework pelos arquivos reais do zip (mais confiável que o nome).
+    const paths = extractedFiles.map((f) => f.path.toLowerCase());
+    let guessedFramework: "android" | "flutter" | "reactnative" | "unknown" = "unknown";
+    if (paths.some((p) => p.endsWith("pubspec.yaml"))) guessedFramework = "flutter";
+    else if (paths.some((p) => p.endsWith("androidmanifest.xml")) && paths.some((p) => /build\.gradle(\.kts)?$/.test(p))) guessedFramework = "android";
+    else if (paths.some((p) => p === "package.json") && paths.some((p) => /build\.gradle(\.kts)?$/.test(p))) guessedFramework = "reactnative";
+    else if (paths.some((p) => /build\.gradle(\.kts)?$/.test(p))) guessedFramework = "android";
+
+    detection = detectFramework(name, zipFile.name);
+    if (guessedFramework !== "unknown") detection = { ...detection, framework: guessedFramework };
   } else {
     if (!repoUrl) return { error: "Informe a URL do repositório." };
     if (!/^https?:\/\/.+|^git@.+:.+/.test(repoUrl)) {
@@ -63,11 +116,20 @@ export async function createProject(prevState: unknown, formData: FormData) {
     })
     .returning();
 
+  if (extractedFiles.length > 0) {
+    for (const f of extractedFiles) {
+      await db.insert(generatedFiles).values({ projectId: project.id, path: f.path, content: f.content });
+    }
+  }
+
   await db.insert(notifications).values({
     userId: me.id,
     type: "system",
     title: "Projeto importado",
-    message: `${name} foi adicionado como ${detection.framework} (${detection.language}).`,
+    message:
+      extractedFiles.length > 0
+        ? `${name} foi adicionado como ${detection.framework} (${detection.language}) — ${extractedFiles.length} arquivo(s) de código armazenados para build.`
+        : `${name} foi adicionado como ${detection.framework} (${detection.language}).`,
   });
 
   redirect(`/app/projects/${project.id}`);

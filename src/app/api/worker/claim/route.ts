@@ -55,6 +55,7 @@ export async function POST(req: Request) {
         branch: project.branch,
         packageName: project.packageName,
         aiGenerated: project.aiGenerated,
+        source: project.source,
         appName: project.appName,
         webUrl: project.webUrl,
       },

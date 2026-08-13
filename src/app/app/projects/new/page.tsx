@@ -75,13 +75,18 @@ export default function NewProjectPage() {
     { id: "zip", label: "Enviar ZIP", icon: Package, desc: "Arraste e solte um .zip" },
   ];
 
-  // We only capture the file NAME (metadata) — the binary is never uploaded to the
-  // Server Action, so large ZIPs never overflow the request body limit.
+  // O arquivo agora é enviado de verdade ao Server Action (Next.js aceita File
+  // em FormData nativamente). O limite do body foi aumentado em next.config.ts.
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) setFileName(file.name);
+    if (file && inputRef.current) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      inputRef.current.files = dt.files;
+      setFileName(file.name);
+    }
   }
 
   return (
@@ -205,16 +210,17 @@ export default function NewProjectPage() {
                   {fileName ? fileName : "Arraste e solte seu .zip aqui"}
                 </p>
                 <p className="mt-1 text-xs text-slate-400">ou clique para selecionar · projeto Android/Flutter/RN compactado</p>
-                {/* File picker for UX only — the binary is NOT uploaded. */}
+                {/* O arquivo em si (não só o nome) é enviado ao Server Action. */}
                 <input
                   ref={inputRef}
                   type="file"
+                  name="zipFile"
                   accept=".zip"
                   className="hidden"
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
                 />
-                {/* Only the filename (metadata) is submitted to the Server Action. */}
+                {/* Nome de exibição, usado como fallback caso o campo file venha vazio. */}
                 <input type="hidden" name="zipName" value={fileName ?? ""} />
               </div>
               <div>
