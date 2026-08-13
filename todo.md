@@ -129,3 +129,8 @@
 - [ ] Definir e implementar builds agendadas e automações recorrentes com arquitetura segura e gerenciável.
 - [ ] Criar agendamentos internos com horário, projeto, formato de build, ativação e histórico de execução.
 - [ ] Adicionar tela administrativa para criar, pausar e remover agendamentos de build.
+- [ ] Criar projetos de Studio para aplicativos e websites com arquivos, histórico de alterações e autoria persistida.
+- [ ] Importar repositórios GitHub no Studio com árvore lateral de arquivos e navegação segura do conteúdo.
+- [ ] Sincronizar automaticamente os projetos criados ou alterados pelo Studio com um repositório GitHub configurado.
+- [ ] Adicionar chat de criação que aplique alterações de arquivos a partir de pedidos em linguagem natural.
+- [ ] Adicionar prévia temporária ao vivo do website ou frontend gerado pelo Studio.

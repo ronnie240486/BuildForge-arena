@@ -430,6 +430,52 @@ export const buildSchedules = mysqlTable(
   (table) => [index("build_schedules_enabled_next_idx").on(table.enabled, table.nextRunAt), index("build_schedules_task_uid_idx").on(table.scheduleCronTaskUid)],
 );
 
+export const studioProjects = mysqlTable(
+  "studio_projects",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerId: int("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 180 }).notNull(),
+    projectType: varchar("project_type", { length: 24 }).notNull().default("website"),
+    framework: varchar("framework", { length: 40 }).notNull().default("react"),
+    githubRepository: varchar("github_repository", { length: 320 }),
+    githubBranch: varchar("github_branch", { length: 180 }).notNull().default("main"),
+    previewToken: varchar("preview_token", { length: 96 }).notNull().unique(),
+    status: varchar("status", { length: 32 }).notNull().default("draft"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (table) => [index("studio_projects_owner_updated_idx").on(table.ownerId, table.updatedAt)],
+);
+
+export const studioFiles = mysqlTable(
+  "studio_files",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    studioProjectId: int("studio_project_id").notNull().references(() => studioProjects.id, { onDelete: "cascade" }),
+    filePath: varchar("file_path", { length: 1024 }).notNull(),
+    language: varchar("language", { length: 48 }).notNull().default("text"),
+    content: text("content").notNull(),
+    sourceStorageKey: varchar("source_storage_key", { length: 512 }),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (table) => [uniqueIndex("studio_files_project_path_unique").on(table.studioProjectId, table.filePath), index("studio_files_project_idx").on(table.studioProjectId)],
+);
+
+export const studioMessages = mysqlTable(
+  "studio_messages",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    studioProjectId: int("studio_project_id").notNull().references(() => studioProjects.id, { onDelete: "cascade" }),
+    authorId: int("author_id").references(() => users.id, { onDelete: "set null" }),
+    role: varchar("role", { length: 24 }).notNull(),
+    content: text("content").notNull(),
+    changedFiles: json("changed_files").$type<string[]>(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("studio_messages_project_created_idx").on(table.studioProjectId, table.createdAt)],
+);
+
 export const systemStatusChecks = mysqlTable(
   "system_status_checks",
   {

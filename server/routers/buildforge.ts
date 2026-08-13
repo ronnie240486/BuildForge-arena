@@ -16,12 +16,14 @@ import {
   upsertOrganizationMember,
   removeOrganizationMember,
   createProject,
+  createStudioProject,
   createTemplateProject,
   generateStarterApp,
   getArtifactDownload,
   getBuildDetails,
   getBrandingConfig,
   getDashboardData,
+  getStudioProjectDetail,
   getPublicSystemStatus,
   getPublicReleaseDistribution,
   getBackupDownload,
@@ -48,6 +50,7 @@ import {
   listOrganizationMembers,
   listSupportTickets,
   listStudioModels,
+  listStudioProjects,
   listUsersForAdmin,
   listWorkers,
   listWebhooks,
@@ -483,6 +486,18 @@ export const buildforgeRouter = router({
     }),
   }),
   studio: router({
+    projects: adminProcedure.query(async ({ ctx }) => {
+      try { return await listStudioProjects(actorFromUser(ctx.user)); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    projectDetail: adminProcedure.input(z.object({ projectId: z.number().int().positive() })).query(async ({ ctx, input }) => {
+      try { return await getStudioProjectDetail(actorFromUser(ctx.user), input.projectId); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    createProject: adminProcedure.input(z.object({ name: z.string().trim().min(2).max(180), projectType: z.enum(["website", "application"]), framework: z.string().trim().min(2).max(40) })).mutation(async ({ ctx, input }) => {
+      try { return await createStudioProject({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
     providers: adminProcedure.query(async () => listAiProviderConfigs()),
     models: adminProcedure.query(async () => ({ models: await listStudioModels() })),
     saveProvider: adminProcedure.input(z.object({ provider: z.enum(["openai", "anthropic", "gemini"]), apiKey: z.string().min(8).max(1024), preferredModel: z.string().trim().max(160).optional() })).mutation(async ({ ctx, input }) => {
