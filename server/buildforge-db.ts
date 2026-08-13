@@ -421,6 +421,13 @@ export async function createBuild(input: {
     if (signingKey.expiresAt && signingKey.expiresAt < new Date()) throw new Error("A keystore selecionada expirou e deve ser reenviada.");
   }
 
+  if (!isPlatformAdmin(input.actor)) {
+    const [account] = await db.select({ buildLimit: users.buildLimit, buildsUsed: users.buildsUsed, allowedTools: users.allowedTools }).from(users).where(eq(users.id, input.actor.id)).limit(1);
+    if (!account) throw new Error("Conta de cliente não encontrada.");
+    if (account.buildLimit >= 0 && account.buildsUsed >= account.buildLimit) throw new Error("O limite de builds desta conta foi atingido. Solicite uma ampliação ao administrador.");
+    if (account.allowedTools && !account.allowedTools.includes("builds")) throw new Error("Esta conta não possui permissão para gerar builds.");
+  }
+
   const [queueSummary] = await db
     .select({ queued: count() })
     .from(builds)
@@ -440,6 +447,7 @@ export async function createBuild(input: {
   });
 
   const buildId = Number(result.insertId);
+  if (!isPlatformAdmin(input.actor)) await db.update(users).set({ buildsUsed: sql`${users.buildsUsed} + 1` }).where(eq(users.id, input.actor.id));
   await db.insert(buildLogs).values({
     buildId,
     sequence: 1,

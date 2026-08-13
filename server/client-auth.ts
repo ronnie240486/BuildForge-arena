@@ -27,8 +27,8 @@ export async function verifyClientPassword(password: string, stored: string) {
 }
 
 function safeUser(row: typeof users.$inferSelect): User {
-  const { passwordHash: _passwordHash, role, buildLimit, buildsUsed, avatarColor, ...user } = row;
-  return { ...user, role, buildLimit, buildsUsed, avatarColor };
+  const { passwordHash: _passwordHash, role, buildLimit, buildsUsed, allowedTools, avatarColor, ...user } = row;
+  return { ...user, role, buildLimit, buildsUsed, allowedTools, avatarColor };
 }
 
 function setClientCookie(res: Response, token: string) {
@@ -61,6 +61,29 @@ export async function registerClient(input: { name: string; email: string; passw
   const passwordHash = await hashClientPassword(input.password);
   const [result] = await db.insert(users).values({ openId: `local:${randomUUID()}`, name: input.name.trim(), email, loginMethod: "email_password", passwordHash, role: "member", lastSignedIn: new Date() });
   await createClientSession(Number(result.insertId), input.res);
+  const created = await db.select().from(users).where(eq(users.id, Number(result.insertId))).limit(1);
+  return created[0] ? safeUser(created[0]) : null;
+}
+
+export async function createClientByAdmin(input: { name: string; email: string; password: string; buildLimit: number; allowedTools: string[] }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const email = normalizeEmail(input.email);
+  const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (existing.length) throw new Error("Já existe uma conta com este e-mail.");
+  const passwordHash = await hashClientPassword(input.password);
+  const [result] = await db.insert(users).values({
+    openId: `local:${randomUUID()}`,
+    name: input.name.trim(),
+    email,
+    loginMethod: "email_password",
+    passwordHash,
+    role: "member",
+    buildLimit: input.buildLimit,
+    buildsUsed: 0,
+    allowedTools: input.allowedTools,
+    lastSignedIn: new Date(),
+  });
   const created = await db.select().from(users).where(eq(users.id, Number(result.insertId))).limit(1);
   return created[0] ? safeUser(created[0]) : null;
 }

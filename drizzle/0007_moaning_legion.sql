@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `allowed_tools` json;

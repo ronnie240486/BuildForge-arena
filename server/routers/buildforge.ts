@@ -40,6 +40,7 @@ import {
   updateUserAccess,
 } from "../buildforge-db";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
+import { createClientByAdmin } from "../client-auth";
 
 function actorFromUser(user: NonNullable<Parameters<typeof getDashboardData>[0]>) {
   return { id: user.id, role: user.role };
@@ -320,6 +321,12 @@ export const buildforgeRouter = router({
     }),
   }),
   admin: router({
+    createClient: protectedProcedure
+      .input(z.object({ name: z.string().trim().min(2).max(120), email: z.string().email().max(320), password: z.string().min(8).max(128), buildLimit: z.number().int().min(-1).max(100000), allowedTools: z.array(z.enum(["dashboard", "projects", "builds", "artifacts", "releases", "support"])) .min(1).max(6) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new Error("Apenas administradores podem criar clientes.");
+        return createClientByAdmin(input);
+      }),
     users: protectedProcedure.query(async ({ ctx }) => {
       try {
         return await listUsersForAdmin(actorFromUser(ctx.user));

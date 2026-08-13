@@ -86,3 +86,13 @@
 - [x] Salvar checkpoint após a recuperação completa do worker universal e a documentação atualizada da integração Maximus.
 - [x] Salvar o checkpoint pós-reinicialização com o worker universal reaplicado e `MAXIMUS_INTEGRATION_NOTES.md` atualizado.
 - [ ] Executar a build Maximus em worker FMD dedicado ou runner com memória suficiente, pois o sandbox interrompeu o daemon Gradle após aceitar JDK, SDK, NDK e CMake.
+- [ ] Auditar os controles restritos de Configurações, Administração e navegação atual por papel.
+- [x] Criar clientes pelo painel administrativo com nome, e-mail, senha inicial, limite de builds e ferramentas permitidas.
+- [x] Persistir permissões por ferramenta e validar o limite de builds antes de enfileirar um job.
+- [x] Ocultar do cliente as ferramentas não autorizadas, mantendo apenas os módulos necessários ao seu trabalho.
+- [x] Garantir que as configurações permaneçam amplamente acessíveis ao administrador, sem bloqueios de interface desnecessários.
+- [x] Validar criação de cliente, login, quota, bloqueio de build e menu simplificado no navegador.
+- [ ] Adicionar guardas de autorização por ferramenta nas rotas e APIs para impedir acesso direto por URL a módulos não liberados ao cliente.
+- [ ] Auditar explicitamente Configurações e demais áreas administrativas, comprovando acesso integral do administrador sem bloqueios indevidos.
+- [ ] Validar no navegador com uma conta cliente: login, menu reduzido, rota negada, quota de build e bloqueio ao atingir o limite.
+- [x] Salvar checkpoint do gerenciamento administrativo de clientes.

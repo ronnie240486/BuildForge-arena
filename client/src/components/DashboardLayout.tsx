@@ -66,13 +66,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return <SidebarProvider><Shell user={user}>{children}</Shell></SidebarProvider>;
 }
 
-function Shell({ children, user }: { children: React.ReactNode; user: { name?: string | null; email?: string | null; role?: string } }) {
+function Shell({ children, user }: { children: React.ReactNode; user: { name?: string | null; email?: string | null; role?: string; allowedTools?: string[] | null } }) {
   const [location, setLocation] = useLocation();
   const { toggleSidebar, state } = useSidebar();
   const { theme, toggleTheme } = useTheme();
   const { logout } = useAuth();
   const isMobile = useIsMobile();
-  const visibleItems = items.filter((item) => !item.adminOnly || user.role === "admin");
+  const toolByPath: Record<string, string | undefined> = { "/": "dashboard", "/projects": "projects", "/builds": "builds", "/artifacts": "artifacts", "/releases": "releases" };
+  const visibleItems = items.filter((item) => {
+    if (user.role === "admin") return true;
+    if (item.adminOnly) return false;
+    const tool = toolByPath[item.path];
+    return !tool || !user.allowedTools || user.allowedTools.includes(tool);
+  });
   const pageName = visibleItems.find((item) => item.path === location)?.label ?? "BuildForge";
 
   return (

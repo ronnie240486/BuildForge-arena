@@ -37,6 +37,7 @@ export const users = mysqlTable(
     role: userRole.notNull().default("member"),
     buildLimit: int("buildLimit").notNull().default(3),
     buildsUsed: int("buildsUsed").notNull().default(0),
+    allowedTools: json("allowed_tools").$type<string[]>(),
     avatarColor: varchar("avatarColor", { length: 32 }).notNull().default("indigo"),
     createdAt: timestamp("createdAt").notNull().defaultNow(),
     updatedAt: timestamp("updatedAt").notNull().defaultNow().onUpdateNow(),
@@ -46,10 +47,11 @@ export const users = mysqlTable(
 );
 
 type DatabaseUser = typeof users.$inferSelect;
-export type User = Omit<DatabaseUser, "role" | "buildLimit" | "buildsUsed" | "avatarColor" | "passwordHash"> & {
+export type User = Omit<DatabaseUser, "role" | "buildLimit" | "buildsUsed" | "allowedTools" | "avatarColor" | "passwordHash"> & {
   role: "admin" | "member" | "user";
   buildLimit?: number;
   buildsUsed?: number;
+  allowedTools?: string[] | null;
   avatarColor?: string;
 };
 export type InsertUser = typeof users.$inferInsert;
