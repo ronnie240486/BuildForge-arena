@@ -27,12 +27,12 @@ name: BuildForge Worker
 on:
   workflow_dispatch:      # rodar manualmente
   schedule:
-    - cron: "*/15 * * * *"  # (opcional) acorda a cada 15 min para pegar jobs
+    - cron: "*/5 * * * *"   # acorda a cada 5 min (o mínimo permitido pelo GitHub) para pegar jobs
 
 jobs:
   worker:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     steps:
       - name: Setup JDK 17
         uses: actions/setup-java@v4
