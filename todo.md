@@ -108,6 +108,9 @@
 - [x] Exibir em Configurações os campos mascarados e o estado de conexão de Gemini, Claude e ChatGPT, sem revelar valores de API.
 - [x] Persistir de forma criptografada as chaves de provedores inseridas pelo administrador e permitir removê-las a qualquer momento.
 - [ ] Fortalecer o Studio IA com seleção de modelo, biblioteca de prompts, perguntas de refinamento e sugestões profissionais antes da geração.
+- [ ] Criar biblioteca reutilizável de prompts profissionais no Studio IA com categorias, objetivo e refinamento guiado.
+- [ ] Estruturar os metadados, a pré-visualização e a aplicação consistente da biblioteca de prompts no refinamento guiado.
+- [ ] Ampliar Relatórios com visão por cliente, projeto, status de build e período usando dados reais.
 - [ ] Implementar integração ampliada com GitHub, QR Code para releases e relatórios operacionais por cliente.
 - [ ] Implementar organizações, equipes, suporte por tickets e marca branca.
 - [ ] Criar a interface administrativa de organizações e equipes sobre as APIs já publicadas.
