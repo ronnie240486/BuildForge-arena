@@ -116,3 +116,5 @@
 - [ ] Validar visualmente em desktop e mobile o fluxo completo de organizações e equipes.
 - [ ] Implementar página pública de status, monitoramento de workers e notificações configuráveis.
 - [ ] Definir e implementar builds agendadas e automações recorrentes com arquitetura segura e gerenciável.
+- [ ] Criar agendamentos internos com horário, projeto, formato de build, ativação e histórico de execução.
+- [ ] Adicionar tela administrativa para criar, pausar e remover agendamentos de build.

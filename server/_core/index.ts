@@ -10,6 +10,8 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerWorkerApi } from "../worker-api";
 import { registerBuildStream } from "../build-stream";
+import { executeBuildSchedule } from "../buildforge-db";
+import { sdk } from "./sdk";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -40,6 +42,16 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerWorkerApi(app);
   registerBuildStream(app);
+  app.post("/api/scheduled/build", async (req, res) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      if (!user.isCron || !user.taskUid) return res.status(403).json({ error: "cron-only" });
+      const result = await executeBuildSchedule(user.taskUid);
+      return res.json({ ok: true, ...result });
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : String(error), timestamp: new Date().toISOString(), context: { url: req.originalUrl } });
+    }
+  });
   // tRPC API
   app.use(
     "/api/trpc",

@@ -12,6 +12,7 @@ import {
   createSupportTicket,
   createReleaseDistribution,
   createOrganization,
+  createBuildSchedule,
   upsertOrganizationMember,
   removeOrganizationMember,
   createProject,
@@ -26,6 +27,7 @@ import {
   deleteAllBuilds,
   deleteAllProjects,
   deleteBuild,
+  deleteBuildSchedule,
   deleteProject,
   deleteWorker,
   deleteWebhook,
@@ -33,6 +35,7 @@ import {
   listArtifacts,
   listAiProviderConfigs,
   listBuilds,
+  listBuildSchedules,
   listBackups,
   listProjects,
   listTemplates,
@@ -55,6 +58,7 @@ import {
   removeAiProviderConfig,
   saveAiProviderConfig,
   setAiFixStatus,
+  setBuildScheduleEnabled,
   uploadArtifact,
   uploadProjectZip,
   uploadSigningKey,
@@ -62,9 +66,16 @@ import {
 } from "../buildforge-db";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { createClientByAdmin } from "../client-auth";
+import { createHeartbeatJob, deleteHeartbeatJob, updateHeartbeatJob } from "../_core/heartbeat";
+import { COOKIE_NAME } from "../../shared/const";
 
 function actorFromUser(user: NonNullable<Parameters<typeof getDashboardData>[0]>) {
   return { id: user.id, role: user.role };
+}
+
+function sessionFromRequest(request: { headers: { cookie?: string } }) {
+  const encoded = request.headers.cookie?.split(";").map((item) => item.trim()).find((item) => item.startsWith(`${COOKIE_NAME}=`))?.slice(COOKIE_NAME.length + 1) ?? "";
+  try { return decodeURIComponent(encoded); } catch { return ""; }
 }
 
 function toTrpcError(error: unknown) {
@@ -267,6 +278,29 @@ export const buildforgeRouter = router({
       } catch (error) {
         throw toTrpcError(error);
       }
+    }),
+  }),
+  schedules: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      try { return await listBuildSchedules(actorFromUser(ctx.user)); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    create: protectedProcedure.input(z.object({ projectId: z.number().int().positive(), name: z.string().trim().min(2).max(160), cronExpression: z.string().trim().min(9).max(120), requestedArtifact: z.enum(["apk", "aab"]) })).mutation(async ({ ctx, input }) => {
+      const session = sessionFromRequest(ctx.req);
+      const job = await createHeartbeatJob({ name: `build-${ctx.user.id}-${Date.now()}`, cron: input.cronExpression, path: "/api/scheduled/build", payload: {}, description: `BuildForge: ${input.name}` }, session);
+      try { return await createBuildSchedule({ actor: actorFromUser(ctx.user), ...input, taskUid: job.taskUid, nextRunAt: job.nextExecutionAt ? new Date(job.nextExecutionAt) : null }); }
+      catch (error) { await deleteHeartbeatJob(job.taskUid, session).catch(() => undefined); throw toTrpcError(error); }
+    }),
+    setEnabled: protectedProcedure.input(z.object({ scheduleId: z.number().int().positive(), enabled: z.boolean() })).mutation(async ({ ctx, input }) => {
+      const schedule = await setBuildScheduleEnabled(actorFromUser(ctx.user), input.scheduleId, input.enabled);
+      if (!schedule.scheduleCronTaskUid) throw new Error("Agendamento sem identificador de tarefa.");
+      const updated = await updateHeartbeatJob(schedule.scheduleCronTaskUid, { enable: input.enabled }, sessionFromRequest(ctx.req));
+      return { nextRunAt: updated.nextExecutionAt ?? null };
+    }),
+    delete: protectedProcedure.input(z.object({ scheduleId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const schedule = await deleteBuildSchedule(actorFromUser(ctx.user), input.scheduleId);
+      if (schedule.scheduleCronTaskUid) await deleteHeartbeatJob(schedule.scheduleCronTaskUid, sessionFromRequest(ctx.req));
+      return { success: true };
     }),
   }),
   artifacts: router({

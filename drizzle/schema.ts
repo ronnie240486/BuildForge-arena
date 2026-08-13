@@ -420,13 +420,14 @@ export const buildSchedules = mysqlTable(
     name: varchar("name", { length: 160 }).notNull(),
     cronExpression: varchar("cron_expression", { length: 120 }).notNull(),
     requestedArtifact: varchar("requested_artifact", { length: 12 }).notNull().default("apk"),
+    scheduleCronTaskUid: varchar("schedule_cron_task_uid", { length: 65 }),
     enabled: boolean("enabled").notNull().default(true),
     lastRunAt: timestamp("last_run_at"),
     nextRunAt: timestamp("next_run_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
   },
-  (table) => [index("build_schedules_enabled_next_idx").on(table.enabled, table.nextRunAt)],
+  (table) => [index("build_schedules_enabled_next_idx").on(table.enabled, table.nextRunAt), index("build_schedules_task_uid_idx").on(table.scheduleCronTaskUid)],
 );
 
 export const systemStatusChecks = mysqlTable(

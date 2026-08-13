@@ -7,6 +7,7 @@ import {
   artifacts,
   auditLogs,
   backups,
+  buildSchedules,
   builds,
   buildLogs,
   notifications,
@@ -734,6 +735,59 @@ export async function createBuild(input: {
   });
 
   return { id: buildId, queuePosition: Number(queueSummary?.queued ?? 0) + 1, versionCode, versionName: `1.0.${versionCode}` };
+}
+
+function assertCronExpression(cron: string) {
+  if (cron.trim().split(/\s+/).length !== 6) throw new Error("Use o formato de 6 campos: segundos minutos horas dia mês semana (UTC).");
+}
+
+export async function createBuildSchedule(input: { actor: PlatformActor; projectId: number; name: string; cronExpression: string; requestedArtifact: "apk" | "aab"; taskUid: string; nextRunAt?: Date | null }) {
+  assertCronExpression(input.cronExpression);
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [project] = await db.select().from(projects).where(eq(projects.id, input.projectId)).limit(1);
+  if (!project || (!isPlatformAdmin(input.actor) && project.ownerId !== input.actor.id)) throw new Error("Projeto não encontrado ou não autorizado.");
+  const [result] = await db.insert(buildSchedules).values({ ownerId: input.actor.id, projectId: input.projectId, name: input.name.trim().slice(0, 160), cronExpression: input.cronExpression.trim(), requestedArtifact: input.requestedArtifact, scheduleCronTaskUid: input.taskUid, nextRunAt: input.nextRunAt ?? null });
+  await addAuditLog({ actorId: input.actor.id, action: "schedule.created", entityType: "build_schedule", entityId: String(result.insertId), metadata: { projectId: input.projectId, cron: input.cronExpression } });
+  return { id: Number(result.insertId) };
+}
+
+export async function listBuildSchedules(actor: PlatformActor) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const rows = await db.select({ schedule: buildSchedules, projectName: projects.name, projectOwnerId: projects.ownerId }).from(buildSchedules).innerJoin(projects, eq(buildSchedules.projectId, projects.id)).orderBy(desc(buildSchedules.createdAt));
+  return rows.filter((row) => isPlatformAdmin(actor) || row.projectOwnerId === actor.id).map((row) => ({ ...row.schedule, projectName: row.projectName }));
+}
+
+export async function setBuildScheduleEnabled(actor: PlatformActor, scheduleId: number, enabled: boolean, nextRunAt?: Date | null) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [schedule] = await db.select().from(buildSchedules).where(eq(buildSchedules.id, scheduleId)).limit(1);
+  if (!schedule || (!isPlatformAdmin(actor) && schedule.ownerId !== actor.id)) throw new Error("Agendamento não encontrado ou não autorizado.");
+  await db.update(buildSchedules).set({ enabled, nextRunAt: nextRunAt ?? schedule.nextRunAt }).where(eq(buildSchedules.id, scheduleId));
+  return schedule;
+}
+
+export async function deleteBuildSchedule(actor: PlatformActor, scheduleId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [schedule] = await db.select().from(buildSchedules).where(eq(buildSchedules.id, scheduleId)).limit(1);
+  if (!schedule || (!isPlatformAdmin(actor) && schedule.ownerId !== actor.id)) throw new Error("Agendamento não encontrado ou não autorizado.");
+  await db.delete(buildSchedules).where(eq(buildSchedules.id, scheduleId));
+  await addAuditLog({ actorId: actor.id, action: "schedule.deleted", entityType: "build_schedule", entityId: String(scheduleId), metadata: {} });
+  return schedule;
+}
+
+export async function executeBuildSchedule(taskUid: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [schedule] = await db.select().from(buildSchedules).where(eq(buildSchedules.scheduleCronTaskUid, taskUid)).limit(1);
+  if (!schedule || !schedule.enabled) return { skipped: true as const };
+  const [owner] = await db.select({ id: users.id, role: users.role }).from(users).where(eq(users.id, schedule.ownerId)).limit(1);
+  if (!owner) return { skipped: true as const };
+  const build = await createBuild({ actor: { id: owner.id, role: owner.role }, projectId: schedule.projectId, artifact: schedule.requestedArtifact as "apk" | "aab" });
+  await db.update(buildSchedules).set({ lastRunAt: new Date() }).where(eq(buildSchedules.id, schedule.id));
+  return { skipped: false as const, buildId: build.id };
 }
 
 export async function listBuilds(actor: PlatformActor, projectId?: number) {
