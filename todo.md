@@ -79,3 +79,10 @@
 - [ ] Validar no navegador os estados de token ausente, bootstrap bloqueado e ambiente pronto para conexão.
 - [x] Validar as rotas e os comandos do FMD sem executar instalações remotas não autorizadas.
 - [ ] Salvar checkpoint da integração FMD.
+- [x] Reaplicar após a reinicialização os módulos de detecção universal, estratégias, testes e relatório Maximus que ainda não constam no checkpoint restaurado.
+- [x] Salvar checkpoint da correção universal do worker e documentar o resultado real da integração Maximus.
+- [x] Recriar o relatório persistido da integração Maximus após a reinicialização, documentando detecção, estratégia, comandos e limitações reais.
+- [x] Concluir uma nova tentativa documentada de build real do Maximus com a toolchain isolada, registrando sucesso ou falha verificável.
+- [x] Salvar checkpoint após a recuperação completa do worker universal e a documentação atualizada da integração Maximus.
+- [x] Salvar o checkpoint pós-reinicialização com o worker universal reaplicado e `MAXIMUS_INTEGRATION_NOTES.md` atualizado.
+- [ ] Executar a build Maximus em worker FMD dedicado ou runner com memória suficiente, pois o sandbox interrompeu o daemon Gradle após aceitar JDK, SDK, NDK e CMake.

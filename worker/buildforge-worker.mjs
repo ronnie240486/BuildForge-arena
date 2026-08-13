@@ -5,12 +5,14 @@
  * Exemplo: BUILDFORGE_URL=https://seu-dominio MANUS_WORKER_TOKEN=bfw_... node worker/buildforge-worker.mjs
  */
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, readdir, rm, writeFile, mkdir } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, readdir, rm, writeFile, mkdir, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, normalize, relative } from "node:path";
+import { basename, join, normalize, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { unzipSync } from "fflate";
+import { detectProject, safeLogValue } from "./project-detector.mjs";
+import { resolveBuildStrategy } from "./build-strategies.mjs";
 
 const exec = promisify(execFile);
 function cliValue(flag) { const index = process.argv.indexOf(flag); return index >= 0 ? process.argv[index + 1] || "" : ""; }
@@ -28,7 +30,7 @@ async function request(path, body = {}) {
 }
 
 async function sendLog(buildId, sequence, level, message, progress) {
-  await request("/api/worker/log", { buildId, sequence, level, message: String(message).slice(0, 10_000), progress });
+  await request("/api/worker/log", { buildId, sequence, level, message: safeLogValue(message).slice(0, 10_000), progress });
 }
 
 async function doctorCheck(name, command, args = [], required = true) {
@@ -56,15 +58,20 @@ async function runDoctor() {
 }
 
 function safeEntry(name) {
-  const value = normalize(name).replace(/^([/\\])+/, "");
-  return value && !value.startsWith("..") && !value.includes("/../") ? value : null;
+  const portable = String(name).replace(/\\/g, "/");
+  const value = normalize(portable).replace(/^([/\\])+/, "");
+  return value && value !== ".." && !portable.split("/").includes("..") ? value : null;
 }
 
 async function extractSource(url, destination) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Não foi possível obter a fonte enviada (${response.status}).`);
+  const contentLength = Number(response.headers.get("content-length") || 0);
+  if (contentLength > 50 * 1024 * 1024) throw new Error("O ZIP excede o limite seguro de 50 MB.");
   const archive = new Uint8Array(await response.arrayBuffer());
+  if (archive.byteLength > 50 * 1024 * 1024) throw new Error("O ZIP excede o limite seguro de 50 MB.");
   const entries = unzipSync(archive);
+  if (Object.values(entries).reduce((sum, data) => sum + data.byteLength, 0) > 250 * 1024 * 1024) throw new Error("O conteúdo descompactado excede o limite seguro de 250 MB.");
   for (const [name, data] of Object.entries(entries)) {
     const safe = safeEntry(name);
     if (!safe || safe.endsWith("/")) continue;
@@ -88,27 +95,21 @@ async function prepareSource(build, workspace) {
   return source;
 }
 
-async function detectFrameworkFromSource(root, depth = 0) {
-  if (depth > 5) return null;
-  const entries = await readdir(root, { withFileTypes: true });
-  let androidFound = false;
-  for (const entry of entries) {
-    if ([".git", "node_modules", ".gradle", "build"].includes(entry.name)) continue;
-    const location = join(root, entry.name);
-    if (entry.isFile() && entry.name === "pubspec.yaml") return "flutter";
-    if (entry.isFile() && entry.name === "package.json") {
-      try {
-        const manifest = JSON.parse(await readFile(location, "utf8"));
-        if (manifest.dependencies?.["react-native"] || manifest.devDependencies?.["react-native"]) return "react_native";
-      } catch { /* O agente segue com os demais manifestos disponíveis. */ }
+async function detectFrameworkFromSource(root) {
+  const detected = await detectProject(root);
+  if (detected.framework !== "unknown") return detected.framework;
+  async function legacyScan(current, depth = 0) {
+    if (depth > 8) return null;
+    const entries = await readdir(current, { withFileTypes: true }).catch(() => []);
+    if (entries.some((entry) => entry.isFile() && entry.name === "AndroidManifest.xml")) return "android";
+    const packageEntry = entries.find((entry) => entry.isFile() && entry.name === "package.json");
+    if (packageEntry) {
+      try { const manifest = JSON.parse(await readFile(join(current, packageEntry.name), "utf8")); if (manifest.dependencies?.["react-native"] || manifest.devDependencies?.["react-native"]) return "react_native"; } catch { /* Compatibilidade: segue para a próxima pasta. */ }
     }
-    if (entry.isFile() && (entry.name === "AndroidManifest.xml" || entry.name === "build.gradle" || entry.name === "build.gradle.kts")) androidFound = true;
-    if (entry.isDirectory()) {
-      const nested = await detectFrameworkFromSource(location, depth + 1);
-      if (nested) return nested;
-    }
+    for (const entry of entries) if (entry.isDirectory() && ![".git", "node_modules", ".gradle", "build"].includes(entry.name)) { const found = await legacyScan(join(current, entry.name), depth + 1); if (found) return found; }
+    return null;
   }
-  return androidFound ? "android" : null;
+  return legacyScan(root);
 }
 
 async function applyFixes(source, fixes) {
@@ -132,9 +133,14 @@ async function applyFixes(source, fixes) {
 }
 
 async function runCommand(command, args, cwd) {
-  const child = execFile(command, args, { cwd, timeout: 20 * 60_000, maxBuffer: 2_000_000 });
-  const result = await child;
-  return `${result.stdout}\n${result.stderr}`.trim();
+  try {
+    const result = await execFile(command, args, { cwd, timeout: 20 * 60_000, maxBuffer: 8_000_000, windowsHide: true });
+    return { stdout: String(result.stdout || ""), stderr: String(result.stderr || ""), exitCode: 0 };
+  } catch (error) {
+    const failure = new Error(`Comando falhou: ${command}`);
+    failure.details = { command, args, cwd, exitCode: Number(error?.code) || 1, stdout: String(error?.stdout || ""), stderr: String(error?.stderr || ""), message: error instanceof Error ? error.message : safeLogValue(error) };
+    throw failure;
+  }
 }
 
 async function createWebviewSource(build, workspace) {
@@ -174,37 +180,49 @@ async function createWebviewSource(build, workspace) {
   return source;
 }
 
-async function runBuild(build, source, signing) {
+async function runBuild(project, build, signing, onStep) {
   const signingArgs = signing ? [`-Pandroid.injected.signing.store.file=${signing.file}`, `-Pandroid.injected.signing.store.password=${signing.storePassword}`, `-Pandroid.injected.signing.key.alias=${signing.alias}`, `-Pandroid.injected.signing.key.password=${signing.keyPassword}`] : [];
-  if (build.framework === "android") return runCommand(process.platform === "win32" ? "gradlew.bat" : "./gradlew", [build.artifact === "aab" ? "bundleRelease" : "assembleRelease", ...signingArgs], source);
-  if (build.framework === "flutter") return runCommand("flutter", ["build", build.artifact === "aab" ? "appbundle" : "apk", "--release"], source);
-  if (build.framework === "react_native") return runCommand("npx", ["react-native", "build-android", "--mode=release"], source);
-  if (build.framework === "webview") return runCommand(process.env.GRADLE_COMMAND || "gradle", [build.artifact === "aab" ? "bundleRelease" : "assembleRelease", ...signingArgs], source);
-  throw new Error(`Framework ${build.framework} não é suportado por este agente.`);
+  const strategy = resolveBuildStrategy(project, build.artifact, signingArgs);
+  if (strategy.unsupportedReason) throw new Error(strategy.unsupportedReason);
+  for (const step of strategy.steps) {
+    if (process.platform !== "win32" && basename(step.command) === "gradlew") await chmod(step.command, 0o755).catch(() => undefined);
+    await onStep({ type: "command", strategy: strategy.id, command: step.command, args: step.args, cwd: step.cwd });
+    const result = await runCommand(step.command, step.args, step.cwd);
+    await onStep({ type: "result", strategy: strategy.id, command: step.command, cwd: step.cwd, ...result });
+  }
+  return strategy;
 }
 
-async function findArtifact(root, extension) {
+async function findArtifacts(root, extension, found = []) {
   const entries = await readdir(root, { withFileTypes: true });
   for (const entry of entries) {
     const file = join(root, entry.name);
-    if (entry.isDirectory() && !["node_modules", ".git"].includes(entry.name)) {
-      const found = await findArtifact(file, extension);
-      if (found) return found;
-    }
-    if (entry.isFile() && entry.name.toLowerCase().endsWith(extension)) return file;
+    if (entry.isDirectory() && !["node_modules", ".git", ".gradle", ".expo"].includes(entry.name)) await findArtifacts(file, extension, found);
+    if (entry.isFile() && entry.name.toLowerCase().endsWith(extension)) { const info = await stat(file); if (info.size >= 1024) found.push({ path: file, size: info.size, modifiedAt: info.mtimeMs, release: /release/i.test(file), debug: /debug/i.test(file) }); }
   }
-  return null;
+  return found;
+}
+
+async function selectArtifact(roots, extension) {
+  const all = [];
+  for (const root of [...new Set(roots)]) if ((await stat(root).catch(() => null))?.isDirectory()) await findArtifacts(root, extension, all);
+  all.sort((a, b) => Number(b.release) - Number(a.release) || Number(a.debug) - Number(b.debug) || b.modifiedAt - a.modifiedAt || b.size - a.size);
+  return { selected: all[0] || null, roots: [...new Set(roots)] };
 }
 
 async function executeBuild(build) {
   const workspace = await mkdtemp(join(tmpdir(), "buildforge-"));
   let sequence = 10;
   try {
-    await sendLog(build.id, sequence++, "info", `Build iniciado pelo agente para ${build.framework}.`, 8);
+    await sendLog(build.id, sequence++, "info", `[start] Build iniciado para framework declarado: ${build.framework}.`, 8);
     const source = build.framework === "webview" ? await createWebviewSource(build, workspace) : await prepareSource(build, workspace);
-    const detectedFramework = build.framework === "webview" ? "webview" : await detectFrameworkFromSource(source);
-    if (!detectedFramework) throw new Error("Não foi possível detectar Android, Flutter ou React Native na fonte do projeto.");
-    if (detectedFramework !== build.framework) await sendLog(build.id, sequence++, "warn", `Framework atualizado localmente de ${build.framework} para ${detectedFramework} após inspeção dos manifestos.`, 14);
+    const detected = build.framework === "webview" ? { framework: "webview", projectRoot: source, relativeRoot: ".", packageManager: "gradle", confidence: 1, evidence: ["Projeto WebView gerado pelo BuildForge"], markers: {} } : await detectProject(source);
+    if (detected.framework === "unknown") throw new Error(`Não foi possível detectar uma aplicação compilável. Evidências: ${detected.evidence.join(", ")}.`);
+    await sendLog(build.id, sequence++, "info", `[detect] Framework: ${detected.framework}`, 11);
+    await sendLog(build.id, sequence++, "info", `[detect] Project root: ${detected.relativeRoot}`, 12);
+    await sendLog(build.id, sequence++, "info", `[detect] Confidence: ${detected.confidence.toFixed(2)}`, 13);
+    await sendLog(build.id, sequence++, "info", `[detect] Evidence: ${detected.evidence.join(" + ")}`, 14);
+    if (detected.framework !== build.framework) await sendLog(build.id, sequence++, "warn", `[detect] Framework atualizado localmente de ${build.framework} para ${detected.framework}.`, 15);
     await sendLog(build.id, sequence++, "info", "Fonte preparada; aplicando correções aprovadas quando compatíveis.", 18);
     const appliedFixIds = await applyFixes(source, build.approvedFixes);
     if (appliedFixIds.length) await sendLog(build.id, sequence++, "info", `${appliedFixIds.length} correção(ões) de IA aplicadas.`, 28);
@@ -215,14 +233,20 @@ async function executeBuild(build) {
       await sendLog(build.id, sequence++, "info", "Keystore temporária recuperada para assinatura controlada.", 35);
     }
     await sendLog(build.id, sequence++, "info", "Executando toolchain de release.", 40);
-    const output = await runBuild({ ...build, framework: detectedFramework }, source, signing);
-    if (output) await sendLog(build.id, sequence++, "info", output.slice(-8_000), 84);
+    const strategy = await runBuild(detected, { ...build, framework: detected.framework }, signing, async (event) => {
+      if (event.type === "command") await sendLog(build.id, sequence++, "info", `[build] Strategy: ${event.strategy}\n[build] Working directory: ${relative(source, event.cwd) || "."}\n[build] Command: ${event.command} ${event.args.join(" ")}`, 45);
+      else await sendLog(build.id, sequence++, event.exitCode === 0 ? "info" : "error", `[build] Exit code: ${event.exitCode}\n[stdout]\n${event.stdout.slice(-6000) || "(vazio)"}\n[stderr]\n${event.stderr.slice(-6000) || "(vazio)"}`, 78);
+    });
     const extension = build.artifact === "aab" ? ".aab" : ".apk";
-    const artifact = await findArtifact(source, extension);
-    if (!artifact) throw new Error(`Toolchain concluída, mas nenhum arquivo ${extension} foi localizado.`);
-    const data = await readFile(artifact);
-    const uploaded = await request("/api/worker/artifact", { buildId: build.id, type: build.artifact, filename: `build-${build.id}${extension}`, contentType: "application/vnd.android.package-archive", contentBase64: data.toString("base64") });
-    await request("/api/worker/complete", { buildId: build.id, status: "succeeded", summary: `Artefato ${extension} gerado e armazenado com sucesso.`, appliedFixIds, artifactId: uploaded.id });
+    await sendLog(build.id, sequence++, "info", `[artifact] Procurando ${extension} em: ${strategy.searchRoots.map((root) => relative(source, root) || ".").join(", ")}`, 84);
+    const artifactResult = await selectArtifact(strategy.searchRoots.length ? strategy.searchRoots : [detected.projectRoot], extension);
+    if (!artifactResult.selected) throw new Error(`Estratégia ${strategy.id} terminou, mas nenhum ${extension} válido foi produzido. Diretórios pesquisados: ${artifactResult.roots.map((root) => relative(source, root) || ".").join(", ")}.`);
+    const artifact = artifactResult.selected;
+    await sendLog(build.id, sequence++, "info", `[artifact] Found: ${relative(source, artifact.path)} (${artifact.size} bytes)`, 90);
+    const data = await readFile(artifact.path);
+    const uploaded = await request("/api/worker/artifact", { buildId: build.id, type: build.artifact, filename: basename(artifact.path), contentType: build.artifact === "aab" ? "application/octet-stream" : "application/vnd.android.package-archive", contentBase64: data.toString("base64") });
+    await sendLog(build.id, sequence++, "info", `[success] ${extension} enviado com sucesso.`, 98);
+    await request("/api/worker/complete", { buildId: build.id, status: "succeeded", summary: `${strategy.id}: ${basename(artifact.path)} (${artifact.size} bytes) armazenado com sucesso.`, appliedFixIds, artifactId: uploaded.id });
   } catch (error) {
     await sendLog(build.id, sequence++, "error", error instanceof Error ? error.stack || error.message : String(error), 0).catch(() => undefined);
     await request("/api/worker/complete", { buildId: build.id, status: "failed", summary: error instanceof Error ? error.message : "Falha desconhecida no agente." }).catch(() => undefined);
