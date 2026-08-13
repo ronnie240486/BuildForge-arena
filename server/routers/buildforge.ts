@@ -9,6 +9,7 @@ import {
   createWorkspaceBackup,
   createWebviewProject,
   createBuild,
+  createSupportTicket,
   createReleaseDistribution,
   createProject,
   createTemplateProject,
@@ -34,6 +35,7 @@ import {
   listTemplates,
   listSigningKeys,
   listReleaseDistributions,
+  listSupportTickets,
   listStudioModels,
   listUsersForAdmin,
   listWorkers,
@@ -332,6 +334,16 @@ export const buildforgeRouter = router({
     }),
     createDistribution: toolProcedure("releases").input(z.object({ artifactId: z.number().int().positive(), label: z.string().trim().min(2).max(160), channel: z.enum(["internal", "beta", "production", "client"]), expiresAt: z.date().optional() })).mutation(async ({ ctx, input }) => {
       try { return await createReleaseDistribution({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+  }),
+  support: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      try { return await listSupportTickets(actorFromUser(ctx.user)); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    create: protectedProcedure.input(z.object({ subject: z.string().trim().min(4).max(200), description: z.string().trim().min(12).max(8000), priority: z.enum(["low", "normal", "high", "urgent"]), projectId: z.number().int().positive().optional() })).mutation(async ({ ctx, input }) => {
+      try { return await createSupportTicket({ actor: actorFromUser(ctx.user), ...input }); }
       catch (error) { throw toTrpcError(error); }
     }),
   }),

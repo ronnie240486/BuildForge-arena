@@ -14,6 +14,8 @@ import {
   releaseDistributions,
   projectTemplates,
   signingKeys,
+  supportMessages,
+  supportTickets,
   systemStatusChecks,
   users,
   webhooks,
@@ -99,6 +101,20 @@ export async function getPublicSystemStatus() {
   });
   const overall = components.some((item) => item.status === "outage") ? "outage" : components.some((item) => item.status === "degraded") ? "degraded" : components.some((item) => item.status === "maintenance") ? "maintenance" : "operational";
   return { overall, checkedAt: new Date(), components };
+}
+
+export async function listSupportTickets(actor: PlatformActor) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  return isPlatformAdmin(actor) ? db.select().from(supportTickets).orderBy(desc(supportTickets.createdAt)) : db.select().from(supportTickets).where(eq(supportTickets.ownerId, actor.id)).orderBy(desc(supportTickets.createdAt));
+}
+
+export async function createSupportTicket(input: { actor: PlatformActor; subject: string; description: string; priority: string; projectId?: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [result] = await db.insert(supportTickets).values({ ownerId: input.actor.id, projectId: input.projectId, subject: input.subject.trim().slice(0, 200), description: input.description.trim().slice(0, 8000), priority: input.priority, ticketStatus: "open" });
+  await addAuditLog({ actorId: input.actor.id, action: "support.ticket_created", entityType: "support_ticket", entityId: String(result.insertId), metadata: { priority: input.priority } });
+  return { id: Number(result.insertId) };
 }
 
 export async function saveAiProviderConfig(input: { actor: PlatformActor; provider: string; apiKey: string; preferredModel?: string }) {

@@ -18,6 +18,7 @@ import WorkersPage from "@/pages/Workers";
 import WebhooksPage from "@/pages/Webhooks";
 import FmdPage from "@/pages/Fmd";
 import ReportsPage from "@/pages/Reports";
+import SupportPage from "@/pages/Support";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { canAccessWorkspacePath } from "@/lib/workspace-access";
 
@@ -39,6 +40,7 @@ const pages: Record<string, React.ComponentType> = {
   "/fmd": FmdPage,
   "/admin": AdminPage,
   "/reports": ReportsPage,
+  "/support": SupportPage,
 };
 
 export default function BuildForgeWorkspace() {
