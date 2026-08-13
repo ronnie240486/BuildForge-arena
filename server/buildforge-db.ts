@@ -136,6 +136,40 @@ export async function createOrganization(input: { actor: PlatformActor; name: st
   return { id: Number(result.insertId), slug };
 }
 
+async function assertOrganizationManager(db: NonNullable<Awaited<ReturnType<typeof getDb>>>, actor: PlatformActor, organizationId: number) {
+  const [organization] = await db.select().from(organizations).where(eq(organizations.id, organizationId)).limit(1);
+  if (!organization || (!isPlatformAdmin(actor) && organization.ownerId !== actor.id)) throw new Error("Organização não encontrada ou não autorizada.");
+  return organization;
+}
+
+export async function listOrganizationMembers(actor: PlatformActor, organizationId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await assertOrganizationManager(db, actor, organizationId);
+  return db.select({ id: organizationMembers.id, userId: organizationMembers.userId, role: organizationMembers.organizationRole, email: users.email, name: users.name, joinedAt: organizationMembers.joinedAt }).from(organizationMembers).innerJoin(users, eq(organizationMembers.userId, users.id)).where(eq(organizationMembers.organizationId, organizationId)).orderBy(desc(organizationMembers.joinedAt));
+}
+
+export async function upsertOrganizationMember(input: { actor: PlatformActor; organizationId: number; userId: number; role: "admin" | "developer" | "viewer" }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await assertOrganizationManager(db, input.actor, input.organizationId);
+  const [user] = await db.select({ id: users.id }).from(users).where(eq(users.id, input.userId)).limit(1);
+  if (!user) throw new Error("Usuário não encontrado.");
+  await db.insert(organizationMembers).values({ organizationId: input.organizationId, userId: input.userId, organizationRole: input.role }).onDuplicateKeyUpdate({ set: { organizationRole: input.role } });
+  await addAuditLog({ actorId: input.actor.id, action: "organization.member_upserted", entityType: "organization", entityId: String(input.organizationId), metadata: { userId: input.userId, role: input.role } });
+  return { success: true };
+}
+
+export async function removeOrganizationMember(input: { actor: PlatformActor; organizationId: number; userId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const organization = await assertOrganizationManager(db, input.actor, input.organizationId);
+  if (organization.ownerId === input.userId) throw new Error("O proprietário da organização não pode ser removido.");
+  await db.delete(organizationMembers).where(and(eq(organizationMembers.organizationId, input.organizationId), eq(organizationMembers.userId, input.userId)));
+  await addAuditLog({ actorId: input.actor.id, action: "organization.member_removed", entityType: "organization", entityId: String(input.organizationId), metadata: { userId: input.userId } });
+  return { success: true };
+}
+
 export async function saveAiProviderConfig(input: { actor: PlatformActor; provider: string; apiKey: string; preferredModel?: string }) {
   if (!isPlatformAdmin(input.actor)) throw new Error("Apenas administradores podem configurar provedores de IA.");
   assertConfigurableAiProvider(input.provider);

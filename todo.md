@@ -110,5 +110,9 @@
 - [ ] Fortalecer o Studio IA com seleção de modelo, biblioteca de prompts, perguntas de refinamento e sugestões profissionais antes da geração.
 - [ ] Implementar integração ampliada com GitHub, QR Code para releases e relatórios operacionais por cliente.
 - [ ] Implementar organizações, equipes, suporte por tickets e marca branca.
+- [ ] Criar a interface administrativa de organizações e equipes sobre as APIs já publicadas.
+- [ ] Implementar gerenciamento de membros da organização: listar, convidar/adicionar, definir papel e remover membro.
+- [ ] Adicionar APIs e testes de autorização para operações de equipes e membros.
+- [ ] Validar visualmente em desktop e mobile o fluxo completo de organizações e equipes.
 - [ ] Implementar página pública de status, monitoramento de workers e notificações configuráveis.
 - [ ] Definir e implementar builds agendadas e automações recorrentes com arquitetura segura e gerenciável.

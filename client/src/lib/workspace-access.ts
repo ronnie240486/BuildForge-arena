@@ -22,6 +22,7 @@ export const workspaceToolByPath: Record<string, string> = {
   "/admin": "__admin__",
   "/reports": "__admin__",
   "/support": "support",
+  "/organizations": "__admin__",
 };
 
 export function canAccessWorkspacePath(user: WorkspaceAccessUser | null | undefined, path: string) {

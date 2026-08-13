@@ -12,6 +12,8 @@ import {
   createSupportTicket,
   createReleaseDistribution,
   createOrganization,
+  upsertOrganizationMember,
+  removeOrganizationMember,
   createProject,
   createTemplateProject,
   generateStarterApp,
@@ -37,6 +39,7 @@ import {
   listSigningKeys,
   listReleaseDistributions,
   listOrganizations,
+  listOrganizationMembers,
   listSupportTickets,
   listStudioModels,
   listUsersForAdmin,
@@ -356,6 +359,18 @@ export const buildforgeRouter = router({
     }),
     create: adminProcedure.input(z.object({ name: z.string().trim().min(2).max(160) })).mutation(async ({ ctx, input }) => {
       try { return await createOrganization({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    members: adminProcedure.input(z.object({ organizationId: z.number().int().positive() })).query(async ({ ctx, input }) => {
+      try { return await listOrganizationMembers(actorFromUser(ctx.user), input.organizationId); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    saveMember: adminProcedure.input(z.object({ organizationId: z.number().int().positive(), userId: z.number().int().positive(), role: z.enum(["admin", "developer", "viewer"]) })).mutation(async ({ ctx, input }) => {
+      try { return await upsertOrganizationMember({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    removeMember: adminProcedure.input(z.object({ organizationId: z.number().int().positive(), userId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      try { return await removeOrganizationMember({ actor: actorFromUser(ctx.user), ...input }); }
       catch (error) { throw toTrpcError(error); }
     }),
   }),

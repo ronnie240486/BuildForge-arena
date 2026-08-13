@@ -49,6 +49,7 @@ const items = [
   { icon: Settings2, label: "Configurações", path: "/settings" },
   { icon: Webhook, label: "Webhooks", path: "/webhooks" },
   { icon: Headphones, label: "Suporte", path: "/support" },
+  { icon: UsersRound, label: "Organizações", path: "/organizations", adminOnly: true },
   { icon: ClipboardList, label: "Relatórios", path: "/reports", adminOnly: true },
   { icon: UsersRound, label: "Administração", path: "/admin", adminOnly: true },
 ];
