@@ -589,7 +589,8 @@ async function buildJob(job) {
     let srcDir;
     let ok = true;
     if (project.aiGenerated || project.source === "zip") {
-      // Projeto gerado por IA OU importado por ZIP: baixa os arquivos do servidor e escreve localmente.
+      // Projeto com codigo armazenado no servidor (gerado por IA, criado por
+      // template, ou importado por ZIP): baixa os arquivos e escreve localmente.
       await pushLog(buildId, "[worker] Baixando codigo-fonte do servidor...\n", 8);
       const res = await fetch(SERVER + "/api/worker/builds/" + buildId + "/source", {
         headers: { Authorization: "Bearer " + TOKEN },
