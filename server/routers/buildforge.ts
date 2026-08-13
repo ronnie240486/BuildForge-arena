@@ -11,6 +11,7 @@ import {
   createBuild,
   createSupportTicket,
   createReleaseDistribution,
+  createOrganization,
   createProject,
   createTemplateProject,
   generateStarterApp,
@@ -35,6 +36,7 @@ import {
   listTemplates,
   listSigningKeys,
   listReleaseDistributions,
+  listOrganizations,
   listSupportTickets,
   listStudioModels,
   listUsersForAdmin,
@@ -344,6 +346,16 @@ export const buildforgeRouter = router({
     }),
     create: protectedProcedure.input(z.object({ subject: z.string().trim().min(4).max(200), description: z.string().trim().min(12).max(8000), priority: z.enum(["low", "normal", "high", "urgent"]), projectId: z.number().int().positive().optional() })).mutation(async ({ ctx, input }) => {
       try { return await createSupportTicket({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+  }),
+  organizations: router({
+    list: adminProcedure.query(async ({ ctx }) => {
+      try { return await listOrganizations(actorFromUser(ctx.user)); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    create: adminProcedure.input(z.object({ name: z.string().trim().min(2).max(160) })).mutation(async ({ ctx, input }) => {
+      try { return await createOrganization({ actor: actorFromUser(ctx.user), ...input }); }
       catch (error) { throw toTrpcError(error); }
     }),
   }),

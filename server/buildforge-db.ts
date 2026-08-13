@@ -10,6 +10,8 @@ import {
   builds,
   buildLogs,
   notifications,
+  organizationMembers,
+  organizations,
   projects,
   releaseDistributions,
   projectTemplates,
@@ -115,6 +117,23 @@ export async function createSupportTicket(input: { actor: PlatformActor; subject
   const [result] = await db.insert(supportTickets).values({ ownerId: input.actor.id, projectId: input.projectId, subject: input.subject.trim().slice(0, 200), description: input.description.trim().slice(0, 8000), priority: input.priority, ticketStatus: "open" });
   await addAuditLog({ actorId: input.actor.id, action: "support.ticket_created", entityType: "support_ticket", entityId: String(result.insertId), metadata: { priority: input.priority } });
   return { id: Number(result.insertId) };
+}
+
+export async function listOrganizations(actor: PlatformActor) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  return isPlatformAdmin(actor) ? db.select().from(organizations).orderBy(desc(organizations.createdAt)) : db.select().from(organizations).where(eq(organizations.ownerId, actor.id)).orderBy(desc(organizations.createdAt));
+}
+
+export async function createOrganization(input: { actor: PlatformActor; name: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const base = input.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 88) || "organizacao";
+  const slug = `${base}-${randomBytes(4).toString("hex")}`;
+  const [result] = await db.insert(organizations).values({ ownerId: input.actor.id, name: input.name.trim().slice(0, 160), slug });
+  await db.insert(organizationMembers).values({ organizationId: Number(result.insertId), userId: input.actor.id, organizationRole: "owner" });
+  await addAuditLog({ actorId: input.actor.id, action: "organization.created", entityType: "organization", entityId: String(result.insertId), metadata: { slug } });
+  return { id: Number(result.insertId), slug };
 }
 
 export async function saveAiProviderConfig(input: { actor: PlatformActor; provider: string; apiKey: string; preferredModel?: string }) {
