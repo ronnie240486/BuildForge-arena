@@ -61,7 +61,7 @@
 - [x] Integrar o FMD ou registrar tecnicamente a origem e o modo de abertura automática caso esteja implementado fora do ZIP.
 - [ ] Obter a origem, instalador ou especificação externa do FMD caso o usuário deseje integrá-lo além do fluxo equivalente existente no ZIP.
 - [ ] Produzir uma matriz de paridade por ação do ZIP — projetos, detalhes, builds, settings, toolchain, IA, webhooks e automações — e migrar as lacunas verificadas.
-- [ ] Documentar na interface e na operação que o fluxo equivalente disponível é token → instalador → doctor → worker → Android SDK, enquanto FMD externo requer fonte ou especificação separada.
+- [x] Documentar na interface e na operação que o fluxo equivalente disponível é token → instalador → doctor → worker → Android SDK, enquanto FMD externo requer fonte ou especificação separada.
 - [ ] Comparar sistematicamente a cobertura do ZIP com a plataforma unificada e corrigir todas as lacunas encontradas.
 - [x] Inventariar e documentar os botões, menus, formulários e ações disponíveis na interface BuildForge.
 - [x] Entregar um guia de uso em português para navegação, projetos, builds, workers, IA, releases e administração.

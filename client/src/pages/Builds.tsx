@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Ban, ChevronRight, FileCode2, LoaderCircle, ScrollText } from "lucide-react";
+import { Ban, ChevronRight, Download, FileCode2, LoaderCircle, ScrollText } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { buildStatusClasses, buildStatusLabels, formatDate, frameworkLabel } from "@/lib/buildforge";
@@ -17,6 +17,13 @@ export default function BuildsPage() {
     onSuccess: () => {
       toast.success("Cancelamento solicitado ao worker.");
       void utils.buildforge.builds.list.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const downloadArtifact = trpc.buildforge.artifacts.download.useMutation({
+    onSuccess: ({ url, filename }) => {
+      window.open(url, "_blank", "noopener,noreferrer");
+      toast.success(`Download temporário preparado: ${filename}`);
     },
     onError: (error) => toast.error(error.message),
   });
@@ -67,7 +74,7 @@ export default function BuildsPage() {
                   {liveLogs.length ? liveLogs.map((log) => <p key={log.sequence}><span className="mr-2 text-slate-500">[{log.level}]</span>{log.message}</p>) : <p className="text-slate-500">Aguardando logs do worker.</p>}
                 </div>
               </div>
-              {details.data.artifacts.length > 0 ? <div><div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white"><FileCode2 className="h-4 w-4 text-indigo-500" /> Artefatos</div><p className="mt-2 text-xs text-slate-500">Os links temporários são disponibilizados após o armazenamento seguro.</p></div> : null}
+              {details.data.artifacts.length > 0 ? <div><div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white"><FileCode2 className="h-4 w-4 text-indigo-500" /> Artefatos</div><p className="mt-2 text-xs text-slate-500">Os links são temporários e só são preparados quando você solicita o download.</p><div className="mt-3 space-y-2">{details.data.artifacts.map((artifact) => <div key={artifact.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800"><span className="min-w-0"><span className="block truncate text-xs font-semibold text-slate-800 dark:text-slate-100">{artifact.filename}</span><span className="mt-0.5 block text-[11px] uppercase text-slate-500">{artifact.type}</span></span><button onClick={() => downloadArtifact.mutate({ artifactId: artifact.id })} disabled={downloadArtifact.isPending} className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50 dark:border-indigo-800 dark:text-indigo-200 dark:hover:bg-indigo-500/10"><Download className="h-3.5 w-3.5" /> Baixar</button></div>)}</div></div> : null}
             </div>
           ) : (
             <div className="grid min-h-80 place-items-center text-center"><div><ScrollText className="mx-auto h-9 w-9 text-slate-300 dark:text-slate-700" /><p className="mt-4 font-semibold text-slate-700 dark:text-slate-200">Selecione um build</p><p className="mt-1 max-w-56 text-sm text-slate-500">Os logs e os artefatos seguros aparecem aqui durante a execução.</p></div></div>

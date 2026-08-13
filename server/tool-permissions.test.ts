@@ -41,6 +41,10 @@ describe("permissões de ferramentas", () => {
       code: "FORBIDDEN",
       message: "Esta ferramenta não foi liberada para a sua conta.",
     });
+    await expect(caller.buildforge.builds.create({ projectId: 1, artifact: "aab" })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Esta ferramenta não foi liberada para a sua conta.",
+    });
   });
 
   it("bloqueia a administração para contas de clientes", async () => {
