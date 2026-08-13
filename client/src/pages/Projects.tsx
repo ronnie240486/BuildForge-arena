@@ -62,6 +62,15 @@ export default function ProjectsPage() {
     },
     onError: (error) => toast.error(error.message),
   });
+  const removeAllProjects = trpc.buildforge.projects.deleteAll.useMutation({
+    onSuccess: (result) => {
+      void utils.buildforge.projects.list.invalidate();
+      void utils.buildforge.builds.list.invalidate();
+      void utils.buildforge.dashboard.summary.invalidate();
+      toast.success(`${result.deleted} projeto(s) excluído(s). ${result.skipped ? `${result.skipped} com build ativa foi(ram) preservado(s).` : ""}`);
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   const canCreate = useMemo(
     () => name.trim().length >= 2 && (source === "zip" ? Boolean(zipFile) : reference.trim().length > 3),
@@ -99,9 +108,7 @@ export default function ProjectsPage() {
           <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Projetos</h1>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Importe código, acompanhe a stack detectada e prepare novas entregas.</p>
         </div>
-        <button onClick={() => setOpen(true)} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 active:scale-[0.98]">
-          <Plus className="h-4 w-4" /> Novo projeto
-        </button>
+        <div className="flex flex-wrap gap-2"><button onClick={() => setOpen(true)} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 active:scale-[0.98]"><Plus className="h-4 w-4" /> Novo projeto</button><button onClick={() => { if (window.confirm("Excluir todos os projetos sem builds ativas? Projetos com builds em fila ou execução serão preservados. Esta ação remove as builds finalizadas e artefatos associados dos projetos excluídos.")) removeAllProjects.mutate(); }} disabled={removeAllProjects.isPending || !projects.data?.length} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-rose-200 px-4 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-500/10"><Trash2 className="h-4 w-4" /> Limpar projetos</button></div>
       </header>
 
       {open && (

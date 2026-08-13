@@ -11,7 +11,7 @@ import {
   LayoutDashboard,
   LogOut,
   Moon,
-  PanelLeft,
+  Menu,
   Rocket,
   ShieldCheck,
   Sparkles,
@@ -28,7 +28,7 @@ import { canAccessWorkspacePath } from "@/lib/workspace-access";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar } from "./ui/sidebar";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, useSidebar } from "./ui/sidebar";
 
 const items = [
   { icon: LayoutDashboard, label: "Visão geral", path: "/" },
@@ -69,7 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 function Shell({ children, user }: { children: React.ReactNode; user: { name?: string | null; email?: string | null; role?: string; allowedTools?: string[] | null } }) {
   const [location, setLocation] = useLocation();
-  const { toggleSidebar, state } = useSidebar();
+  const { toggleSidebar, state, setOpenMobile } = useSidebar();
   const { theme, toggleTheme } = useTheme();
   const { logout } = useAuth();
   const isMobile = useIsMobile();
@@ -78,12 +78,16 @@ function Shell({ children, user }: { children: React.ReactNode; user: { name?: s
     return canAccessWorkspacePath(user, item.path);
   });
   const pageName = visibleItems.find((item) => item.path === location)?.label ?? "BuildForge";
+  const navigateTo = (path: string) => {
+    setLocation(path);
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <>
       <Sidebar collapsible="icon" className="border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
         <SidebarHeader className="px-3 py-4">
-          <button onClick={() => setLocation("/")} className="flex w-full items-center gap-3 rounded-xl px-2 text-left">
+          <button onClick={() => navigateTo("/")} className="flex w-full items-center gap-3 rounded-xl px-2 text-left">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30"><Boxes className="h-5 w-5" /></span>
             {state !== "collapsed" && <span className="min-w-0"><span className="block truncate text-sm font-bold tracking-tight text-slate-950 dark:text-white">BuildForge</span><span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-indigo-600 dark:text-indigo-300">Mobile CI/CD</span></span>}
           </button>
@@ -92,7 +96,7 @@ function Shell({ children, user }: { children: React.ReactNode; user: { name?: s
           <SidebarMenu>
             {visibleItems.map((item) => (
               <SidebarMenuItem key={item.path}>
-                <SidebarMenuButton isActive={location === item.path} tooltip={item.label} onClick={() => setLocation(item.path)} className="h-10 rounded-xl">
+                <SidebarMenuButton isActive={location === item.path} tooltip={item.label} onClick={() => navigateTo(item.path)} className="h-10 rounded-xl">
                   <item.icon className="h-4 w-4" /><span>{item.label}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -116,10 +120,9 @@ function Shell({ children, user }: { children: React.ReactNode; user: { name?: s
       </Sidebar>
       <SidebarInset className="min-h-screen bg-slate-50 dark:bg-slate-950">
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/80 bg-slate-50/90 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90 sm:px-6">
-          <div className="flex items-center gap-3"><SidebarTrigger className="rounded-xl" /><div><p className="text-sm font-semibold text-slate-950 dark:text-white">{pageName}</p><p className="text-xs text-slate-500">Build e entrega de aplicativos móveis</p></div></div>
+          <div className="flex items-center gap-3"><button onClick={toggleSidebar} className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-2 text-indigo-700 shadow-sm transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-200 dark:hover:bg-indigo-500/20" aria-label="Abrir menu BuildForge"><span className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-white"><Boxes className="h-3.5 w-3.5" /></span><Menu className="h-4 w-4" /></button><div><p className="text-sm font-semibold text-slate-950 dark:text-white">{pageName}</p><p className="text-xs text-slate-500">Build e entrega de aplicativos móveis</p></div></div>
           <div className="flex items-center gap-2"><button onClick={toggleTheme} className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800" aria-label={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}>{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</button>{user.role === "admin" && <span className="hidden items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 sm:inline-flex dark:text-emerald-300"><ShieldCheck className="h-3.5 w-3.5" />Admin</span>}</div>
         </header>
-        {isMobile && <button onClick={toggleSidebar} className="sr-only">Abrir menu</button>}
         <main className="p-4 sm:p-6">{children}</main>
       </SidebarInset>
     </>

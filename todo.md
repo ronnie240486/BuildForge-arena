@@ -101,3 +101,6 @@
 - [x] Adicionar exclusão confirmada e autorizada de projetos não utilizados.
 - [x] Adicionar exclusão confirmada e autorizada de workers não utilizados.
 - [x] Corrigir a atribuição indevida de papel membro à conta administradora após login Manus OAuth no celular.
+- [x] Fechar automaticamente o menu móvel após navegar por qualquer opção e usar o controle visual do BuildForge no topo.
+- [x] Adicionar exclusão individual e em lote de builds, bloqueando builds em fila ou em execução.
+- [x] Adicionar exclusão em lote de projetos com confirmação e sem remover projetos com builds ativos.

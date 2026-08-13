@@ -1,4 +1,4 @@
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import {
@@ -29,6 +29,17 @@ export type PlatformActor = {
 
 export function isPlatformAdmin(actor: PlatformActor) {
   return actor.role === "admin";
+}
+
+export const buildCleanupStatuses = ["succeeded", "failed", "cancelled"] as const;
+
+export function isBuildCleanupEligible(status: string) {
+  return buildCleanupStatuses.includes(status as (typeof buildCleanupStatuses)[number]);
+}
+
+export function partitionProjectsForCleanup(rows: Array<{ id: number; activeBuilds: number }>) {
+  const removableIds = rows.filter((row) => Number(row.activeBuilds) === 0).map((row) => row.id);
+  return { removableIds, skipped: rows.length - removableIds.length };
 }
 
 function projectScope(actor: PlatformActor) {
@@ -221,6 +232,23 @@ export async function deleteProject(input: { actor: PlatformActor; projectId: nu
   }
   await db.delete(projects).where(eq(projects.id, input.projectId));
   await addAuditLog({ actorId: input.actor.id, action: "project.deleted", entityType: "project", entityId: String(input.projectId), metadata: { name: project.name } });
+}
+
+export async function deleteAllProjects(actor: PlatformActor) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  if (!isPlatformAdmin(actor)) throw new Error("Apenas administradores podem excluir todos os projetos.");
+  const projectRows = await db
+    .select({ id: projects.id, activeBuilds: sql<number>`sum(case when ${builds.status} in ('queued', 'running') then 1 else 0 end)` })
+    .from(projects)
+    .leftJoin(builds, eq(builds.projectId, projects.id))
+    .groupBy(projects.id);
+  const { removableIds, skipped } = partitionProjectsForCleanup(projectRows.map((row) => ({ ...row, activeBuilds: Number(row.activeBuilds ?? 0) })));
+  if (!removableIds.length) return { deleted: 0, skipped };
+  const [result] = await db.delete(projects).where(inArray(projects.id, removableIds));
+  const deleted = Number(result.affectedRows ?? 0);
+  await addAuditLog({ actorId: actor.id, action: "projects.deleted_all", entityType: "project", metadata: { deleted, skipped } });
+  return { deleted, skipped };
 }
 
 export async function createProject(input: {
@@ -511,6 +539,28 @@ export async function listBuilds(actor: PlatformActor, projectId?: number) {
     .leftJoin(workers, eq(builds.workerId, workers.id))
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(desc(builds.createdAt));
+}
+
+export async function deleteBuild(actor: PlatformActor, buildId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [build] = await db.select().from(builds).where(eq(builds.id, buildId)).limit(1);
+  if (!build || (!isPlatformAdmin(actor) && build.requestedById !== actor.id)) throw new Error("Build não encontrado ou não autorizado.");
+  if (["queued", "running"].includes(build.status)) throw new Error("Não é possível excluir uma build em fila ou em execução. Cancele-a antes.");
+  await db.delete(builds).where(eq(builds.id, buildId));
+  await addAuditLog({ actorId: actor.id, action: "build.deleted", entityType: "build", entityId: String(buildId), metadata: { status: build.status } });
+}
+
+export async function deleteAllBuilds(actor: PlatformActor) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  if (!isPlatformAdmin(actor)) throw new Error("Apenas administradores podem excluir todas as builds.");
+  const [active] = await db.select({ total: count() }).from(builds).where(sql`${builds.status} in ('queued', 'running')`);
+  const [result] = await db.delete(builds).where(sql`${builds.status} in ('succeeded', 'failed', 'cancelled')`);
+  const deleted = Number(result.affectedRows ?? 0);
+  const skipped = Number(active?.total ?? 0);
+  await addAuditLog({ actorId: actor.id, action: "builds.deleted_all", entityType: "build", metadata: { deleted, skipped } });
+  return { deleted, skipped };
 }
 
 export async function requestBuildCancellation(actor: PlatformActor, buildId: number) {

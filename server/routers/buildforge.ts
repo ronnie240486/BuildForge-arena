@@ -16,6 +16,9 @@ import {
   getBuildDetails,
   getDashboardData,
   getBackupDownload,
+  deleteAllBuilds,
+  deleteAllProjects,
+  deleteBuild,
   deleteProject,
   deleteWorker,
   deleteWebhook,
@@ -126,6 +129,13 @@ export const buildforgeRouter = router({
         throw toTrpcError(error);
       }
     }),
+    deleteAll: adminProcedure.mutation(async ({ ctx }) => {
+      try {
+        return await deleteAllProjects(actorFromUser(ctx.user));
+      } catch (error) {
+        throw toTrpcError(error);
+      }
+    }),
   }),
   builds: router({
     list: toolProcedure("builds").input(z.object({ projectId: z.number().int().positive().optional() }).optional()).query(async ({ ctx, input }) => {
@@ -148,6 +158,21 @@ export const buildforgeRouter = router({
       try {
         await requestBuildCancellation(actorFromUser(ctx.user), input.buildId);
         return { success: true };
+      } catch (error) {
+        throw toTrpcError(error);
+      }
+    }),
+    delete: toolProcedure("builds").input(z.object({ buildId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      try {
+        await deleteBuild(actorFromUser(ctx.user), input.buildId);
+        return { success: true };
+      } catch (error) {
+        throw toTrpcError(error);
+      }
+    }),
+    deleteAll: adminProcedure.mutation(async ({ ctx }) => {
+      try {
+        return await deleteAllBuilds(actorFromUser(ctx.user));
       } catch (error) {
         throw toTrpcError(error);
       }

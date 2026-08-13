@@ -80,5 +80,13 @@ describe("permissões de ferramentas", () => {
       code: "FORBIDDEN",
       message: "Esta área é exclusiva para administradores.",
     });
+    await expect(caller.buildforge.projects.deleteAll()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Esta área é exclusiva para administradores.",
+    });
+    await expect(caller.buildforge.builds.deleteAll()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Esta área é exclusiva para administradores.",
+    });
   });
 });
