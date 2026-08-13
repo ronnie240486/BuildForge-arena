@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FolderGit2, GitBranch, LoaderCircle, PackagePlus, Play, Plus, Trash2, UploadCloud, X } from "lucide-react";
+import { FolderGit2, GitBranch, Github, LoaderCircle, PackagePlus, Play, Plus, Trash2, UploadCloud, X } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { frameworkLabel, formatDate } from "@/lib/buildforge";
@@ -28,6 +28,11 @@ export default function ProjectsPage() {
   const [reference, setReference] = useState("");
   const [branch, setBranch] = useState("main");
   const [zipFile, setZipFile] = useState<File | null>(null);
+  const [githubProject, setGithubProject] = useState<{ id: number; name: string; repoUrl?: string | null; branch: string } | null>(null);
+  const [githubRepository, setGithubRepository] = useState("");
+  const [githubBranch, setGithubBranch] = useState("main");
+  const [githubSecret, setGithubSecret] = useState("");
+  const [githubArtifact, setGithubArtifact] = useState<"apk" | "aab">("apk");
   const projects = trpc.buildforge.projects.list.useQuery();
   const utils = trpc.useUtils();
 
@@ -69,6 +74,10 @@ export default function ProjectsPage() {
       void utils.buildforge.dashboard.summary.invalidate();
       toast.success(`${result.deleted} projeto(s) excluído(s). ${result.skipped ? `${result.skipped} com build ativa foi(ram) preservado(s).` : ""}`);
     },
+    onError: (error) => toast.error(error.message),
+  });
+  const saveGithub = trpc.buildforge.github.save.useMutation({
+    onSuccess: () => { toast.success("Integração GitHub salva com segurança."); setGithubProject(null); setGithubSecret(""); },
     onError: (error) => toast.error(error.message),
   });
 
@@ -142,6 +151,16 @@ export default function ProjectsPage() {
         </div>
       )}
 
+      {githubProject && (
+        <div className="fixed inset-0 z-50 flex items-end bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-6">
+          <form onSubmit={(event) => { event.preventDefault(); saveGithub.mutate({ projectId: githubProject.id, repository: githubRepository, branch: githubBranch || "main", webhookSecret: githubSecret, autoBuild: true, requestedArtifact: githubArtifact }); }} className="w-full max-w-xl rounded-t-3xl bg-white p-6 shadow-2xl dark:bg-slate-950 sm:rounded-3xl">
+            <div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-semibold text-slate-950 dark:text-white">Automação GitHub</h2><p className="mt-1 text-sm text-slate-500">Cada push na branch configurada pode entrar na fila de build. O segredo fica criptografado e não retorna ao navegador.</p></div><button type="button" onClick={() => setGithubProject(null)} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Fechar GitHub"><X className="h-5 w-5" /></button></div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2"><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 sm:col-span-2">Repositório<input value={githubRepository} onChange={(event) => setGithubRepository(event.target.value)} required placeholder="organizacao/repositorio" className="mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none ring-indigo-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-900" /></label><label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Branch<input value={githubBranch} onChange={(event) => setGithubBranch(event.target.value)} required className="mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none ring-indigo-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-900" /></label><label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Formato<select value={githubArtifact} onChange={(event) => setGithubArtifact(event.target.value as "apk" | "aab")} className="mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="apk">APK</option><option value="aab">AAB</option></select></label><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 sm:col-span-2">Segredo do webhook<input type="password" value={githubSecret} onChange={(event) => setGithubSecret(event.target.value)} required minLength={12} placeholder="Crie um segredo forte para o GitHub" className="mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none ring-indigo-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-900" /></label></div>
+            <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setGithubProject(null)} className="h-11 rounded-xl px-4 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Cancelar</button><button disabled={saveGithub.isPending || githubSecret.trim().length < 12 || githubRepository.trim().length < 3} className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white disabled:opacity-50 dark:bg-indigo-600"><Github className="h-4 w-4" /> Salvar GitHub</button></div>
+          </form>
+        </div>
+      )}
+
       {projects.isLoading ? <div className="grid min-h-64 place-items-center"><LoaderCircle className="h-6 w-6 animate-spin text-indigo-500" /></div> : projects.data?.length ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {projects.data.map((project) => (
@@ -155,6 +174,7 @@ export default function ProjectsPage() {
                 <div className="flex items-center gap-2">
                   <button onClick={() => queue.mutate({ projectId: project.id, artifact: "apk" })} disabled={queue.isPending} className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-50 dark:bg-indigo-600 dark:hover:bg-indigo-500"><Play className="h-3.5 w-3.5" /> APK</button>
                   <button onClick={() => queue.mutate({ projectId: project.id, artifact: "aab" })} disabled={queue.isPending} className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50 dark:border-indigo-800 dark:text-indigo-200 dark:hover:bg-indigo-500/10"><PackagePlus className="h-3.5 w-3.5" /> AAB</button>
+                  <button onClick={() => { setGithubProject(project); setGithubRepository((project.repoUrl ?? "").replace(/^https:\/\/github\.com\//i, "").replace(/\.git$/i, "")); setGithubBranch(project.branch || "main"); setGithubSecret(""); }} title="Configurar GitHub" aria-label={`Configurar GitHub ${project.name}`} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"><Github className="h-4 w-4" /></button>
                   <button onClick={() => { if (window.confirm(`Excluir o projeto “${project.name}”? Os builds e artefatos associados sem execução ativa serão removidos.`)) removeProject.mutate({ projectId: project.id }); }} disabled={removeProject.isPending} title="Excluir projeto" aria-label={`Excluir projeto ${project.name}`} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-500/10"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>

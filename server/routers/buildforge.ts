@@ -36,6 +36,7 @@ import {
   listAiProviderConfigs,
   listBuilds,
   listBuildSchedules,
+  listGithubIntegrations,
   listBackups,
   listProjects,
   listTemplates,
@@ -57,6 +58,7 @@ import {
   restoreWorkspaceBackup,
   removeAiProviderConfig,
   saveAiProviderConfig,
+  saveGithubIntegration,
   setAiFixStatus,
   setBuildScheduleEnabled,
   uploadArtifact,
@@ -167,6 +169,23 @@ export const buildforgeRouter = router({
       } catch (error) {
         throw toTrpcError(error);
       }
+    }),
+  }),
+  github: router({
+    list: toolProcedure("projects").query(async ({ ctx }) => {
+      try { return await listGithubIntegrations(actorFromUser(ctx.user)); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    save: toolProcedure("projects").input(z.object({
+      projectId: z.number().int().positive(),
+      repository: z.string().trim().min(3).max(320),
+      branch: z.string().trim().min(1).max(180),
+      webhookSecret: z.string().min(12).max(512),
+      autoBuild: z.boolean(),
+      requestedArtifact: z.enum(["apk", "aab"]),
+    })).mutation(async ({ ctx, input }) => {
+      try { return await saveGithubIntegration({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
     }),
   }),
   builds: router({

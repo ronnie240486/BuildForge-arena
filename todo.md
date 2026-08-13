@@ -112,6 +112,9 @@
 - [ ] Estruturar os metadados, a pré-visualização e a aplicação consistente da biblioteca de prompts no refinamento guiado.
 - [ ] Ampliar Relatórios com visão por cliente, projeto, status de build e período usando dados reais.
 - [ ] Implementar integração ampliada com GitHub, QR Code para releases e relatórios operacionais por cliente.
+- [ ] Criar a configuração de repositório, branch e webhook do GitHub por projeto, sem expor o segredo de assinatura.
+- [ ] Expor no painel a configuração GitHub por projeto, protegida por administração e com teste de autorização.
+- [ ] Criar a interface administrativa de marca branca para nome, cores e identidade visual da plataforma.
 - [ ] Implementar organizações, equipes, suporte por tickets e marca branca.
 - [ ] Criar a interface administrativa de organizações e equipes sobre as APIs já publicadas.
 - [ ] Implementar gerenciamento de membros da organização: listar, convidar/adicionar, definir papel e remover membro.

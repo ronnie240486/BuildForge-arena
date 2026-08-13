@@ -10,6 +10,7 @@ import {
   buildSchedules,
   builds,
   buildLogs,
+  githubIntegrations,
   notifications,
   organizationMembers,
   organizations,
@@ -168,6 +169,67 @@ export async function removeOrganizationMember(input: { actor: PlatformActor; or
   if (organization.ownerId === input.userId) throw new Error("O proprietário da organização não pode ser removido.");
   await db.delete(organizationMembers).where(and(eq(organizationMembers.organizationId, input.organizationId), eq(organizationMembers.userId, input.userId)));
   await addAuditLog({ actorId: input.actor.id, action: "organization.member_removed", entityType: "organization", entityId: String(input.organizationId), metadata: { userId: input.userId } });
+  return { success: true };
+}
+
+export async function listGithubIntegrations(actor: PlatformActor) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const query = db
+    .select({
+      id: githubIntegrations.id,
+      projectId: githubIntegrations.projectId,
+      projectName: projects.name,
+      repository: githubIntegrations.repository,
+      branch: githubIntegrations.branch,
+      autoBuild: githubIntegrations.autoBuild,
+      requestedArtifact: githubIntegrations.requestedArtifact,
+      lastTriggeredAt: githubIntegrations.lastTriggeredAt,
+      createdAt: githubIntegrations.createdAt,
+    })
+    .from(githubIntegrations)
+    .innerJoin(projects, eq(projects.id, githubIntegrations.projectId));
+  return isPlatformAdmin(actor)
+    ? query.orderBy(desc(githubIntegrations.updatedAt))
+    : query.where(eq(githubIntegrations.ownerId, actor.id)).orderBy(desc(githubIntegrations.updatedAt));
+}
+
+export async function saveGithubIntegration(input: {
+  actor: PlatformActor;
+  projectId: number;
+  repository: string;
+  branch: string;
+  webhookSecret: string;
+  autoBuild: boolean;
+  requestedArtifact: "apk" | "aab";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [project] = await db.select().from(projects).where(eq(projects.id, input.projectId)).limit(1);
+  if (!project || (!isPlatformAdmin(input.actor) && project.ownerId !== input.actor.id)) throw new Error("Projeto não encontrado ou não autorizado.");
+  const repository = input.repository.trim().replace(/^https:\/\/github\.com\//i, "").replace(/\.git$/i, "");
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) throw new Error("Informe o repositório no formato organizacao/repositorio.");
+  const branch = input.branch.trim().slice(0, 180) || "main";
+  const webhookSecret = input.webhookSecret.trim();
+  if (webhookSecret.length < 12 || webhookSecret.length > 512) throw new Error("Informe um segredo de webhook com pelo menos 12 caracteres.");
+  await db.insert(githubIntegrations).values({
+    projectId: project.id,
+    ownerId: project.ownerId,
+    repository,
+    branch,
+    encryptedWebhookSecret: encryptProviderApiKey(webhookSecret),
+    autoBuild: input.autoBuild,
+    requestedArtifact: input.requestedArtifact,
+  }).onDuplicateKeyUpdate({
+    set: {
+      repository,
+      branch,
+      encryptedWebhookSecret: encryptProviderApiKey(webhookSecret),
+      autoBuild: input.autoBuild,
+      requestedArtifact: input.requestedArtifact,
+    },
+  });
+  await addAuditLog({ actorId: input.actor.id, action: "github.integration_saved", entityType: "project", entityId: String(project.id), metadata: { repository, branch, autoBuild: input.autoBuild, requestedArtifact: input.requestedArtifact } });
   return { success: true };
 }
 
