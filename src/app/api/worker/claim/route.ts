@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { builds, projects, buildWorkers } from "@/db/schema";
+import { builds, projects, buildWorkers, users } from "@/db/schema";
 import { authWorker } from "@/lib/worker-auth";
 import { and, eq, asc } from "drizzle-orm";
 
@@ -43,6 +43,15 @@ export async function POST(req: Request) {
 
   if (claimed.length === 0) return Response.json({ job: null }); // lost the race
 
+  // Empresta o token do GitHub do próprio dono (se configurado) para o worker
+  // conseguir clonar repositórios privados. O worker já é autenticado como
+  // pertencente a esse mesmo dono, então isso não vaza para terceiros.
+  let githubToken: string | null = null;
+  if (project.repoUrl && /github\.com/i.test(project.repoUrl)) {
+    const [owner] = await db.select({ githubToken: users.githubToken }).from(users).where(eq(users.id, worker.ownerId)).limit(1);
+    githubToken = owner?.githubToken ?? null;
+  }
+
   return Response.json({
     job: {
       buildId: build.id,
@@ -58,6 +67,7 @@ export async function POST(req: Request) {
         source: project.source,
         appName: project.appName,
         webUrl: project.webUrl,
+        githubToken,
       },
     },
   });

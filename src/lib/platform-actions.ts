@@ -74,6 +74,25 @@ export async function toggleWebhook(id: string, active: boolean) {
   revalidatePath("/app/webhooks");
 }
 
+// Salva (ou remove) o Personal Access Token do GitHub do próprio usuário —
+// usado pelo worker para clonar repositórios PRIVADOS.
+export async function saveGithubToken(prevState: unknown, formData: FormData): Promise<{ error?: string; ok?: boolean }> {
+  const me = await requireUser();
+  const token = String(formData.get("githubToken") || "").trim();
+  const githubUser = String(formData.get("githubUser") || "").trim();
+
+  if (token && !/^(ghp_|github_pat_|gho_)/.test(token)) {
+    return { error: "Isso não parece um token do GitHub válido (deve começar com ghp_ ou github_pat_)." };
+  }
+
+  await db
+    .update(users)
+    .set({ githubToken: token || null, githubUser: githubUser || null })
+    .where(eq(users.id, me.id));
+  revalidatePath("/app/settings");
+  return { ok: true };
+}
+
 /* --------------------------- User management (P1) ------------------------ */
 
 export async function setUserRole(userId: string, role: "admin" | "member") {

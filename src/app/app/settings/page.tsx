@@ -3,7 +3,7 @@ import { users } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { Card, Badge, Button } from "@/components/ui";
 import { ThemeToggle, UserAdmin, type AdminUser } from "@/components/settings-client";
-import { CreateUserForm, ChangePasswordForm } from "@/components/account-forms";
+import { CreateUserForm, ChangePasswordForm, GithubIntegrationForm } from "@/components/account-forms";
 import { AiSettings } from "@/components/ai-settings";
 import { aiSettings } from "@/db/schema";
 import { avatarGradient, initials, cn, timeAgo } from "@/lib/utils";
@@ -88,6 +88,9 @@ export default async function SettingsPage() {
 
       {/* Segurança da conta */}
       <ChangePasswordForm />
+
+      {/* Integração GitHub — token para clonar repositórios privados */}
+      <GithubIntegrationForm hasToken={Boolean(me.githubToken)} githubUser={me.githubUser} />
 
       {/* User management (admin) */}
       {me.role === "admin" ? (

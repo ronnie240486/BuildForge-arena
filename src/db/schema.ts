@@ -86,6 +86,7 @@ export const users = pgTable("users", {
   role: userRole("role").default("member").notNull(),
   avatarColor: text("avatar_color").default("indigo").notNull(),
   githubUser: text("github_user"),
+  githubToken: text("github_token"),
   // Teste grátis: quantos builds o usuário pode disparar. O admin define por conta.
   // Admins têm builds ilimitados. -1 = ilimitado.
   buildLimit: integer("build_limit").default(3).notNull(),

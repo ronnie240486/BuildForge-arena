@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "build_limit" integer NOT NULL DEFAULT 3;
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "builds_used" integer NOT NULL DEFAULT 0;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "github_token" text;
 
 CREATE TABLE IF NOT EXISTS "sessions" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),

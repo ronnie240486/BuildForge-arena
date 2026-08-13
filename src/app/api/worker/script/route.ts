@@ -87,9 +87,11 @@ function downloadRepoZip(project, work, buildId) {
       const branches = [project.branch || "main", "main", "master"];
       const https = require("https");
       const zlib = require("zlib");
+      const authHeaders = { "User-Agent": "BuildForge" };
+      if (project.githubToken) authHeaders.Authorization = "token " + project.githubToken;
       const fetchBuf = (url, redirects) =>
         new Promise((res) => {
-          https.get(url, { headers: { "User-Agent": "BuildForge" } }, (r) => {
+          https.get(url, { headers: authHeaders }, (r) => {
             if ((r.statusCode === 301 || r.statusCode === 302) && r.headers.location && redirects < 5) {
               r.resume(); return res(fetchBuf(r.headers.location, redirects + 1));
             }
@@ -503,14 +505,14 @@ function buildEnv() {
 }
 
 // Executa um comando com STREAMING de logs em tempo real (linha a linha).
-function run(cmd, cwd, buildId, progressBase, progressSpan) {
+function run(cmd, cwd, buildId, progressBase, progressSpan, logCmd) {
   return new Promise((resolve) => {
     const { spawn } = require("child_process");
     const env = buildEnv();
     let buf = "";
     let lines = 0;
     let lastFlush = Date.now();
-    pushLog(buildId, "$ " + cmd + "\n");
+    pushLog(buildId, "$ " + (logCmd || cmd) + "\n");
 
     const child = spawn(cmd, { cwd, env, shell: true });
     const heartbeat = setInterval(() => {
@@ -635,7 +637,20 @@ async function buildJob(job) {
       // Metodo 2 (fallback): git clone, se o download falhar e o git existir.
       if (!gotCode) {
         await pushLog(buildId, "[worker] Download direto falhou; tentando git clone...\n", 12);
-        ok = await run("git clone --depth 1 \"" + project.repoUrl + "\" src", work, buildId);
+        // Se ha um token do GitHub configurado, embute na URL (https://TOKEN@github.com/...)
+        // para permitir clonar repositorios privados.
+        let cloneUrl = project.repoUrl;
+        if (project.githubToken && /^https:\/\/github\.com\//i.test(cloneUrl)) {
+          cloneUrl = cloneUrl.replace(/^https:\/\//i, "https://" + project.githubToken + "@");
+        }
+        ok = await run(
+          "git clone --depth 1 \"" + cloneUrl + "\" src",
+          work,
+          buildId,
+          undefined,
+          undefined,
+          project.githubToken ? "git clone --depth 1 \"https://***@github.com/...\" src" : undefined,
+        );
         gotCode = ok && fs.existsSync(srcDir);
       }
       if (!gotCode || !fs.existsSync(srcDir)) {

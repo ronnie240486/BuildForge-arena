@@ -3,6 +3,7 @@ import { users, projects, builds } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { Card } from "@/components/ui";
 import { AdminClient, type AdminUserRow } from "@/components/admin-client";
+import { CreateUserForm } from "@/components/account-forms";
 import { Users, FolderGit2, Hammer, ShieldCheck } from "lucide-react";
 import { sql } from "drizzle-orm";
 
@@ -70,6 +71,8 @@ export default async function AdminPage() {
           <div><p className="text-xl font-semibold">{totalBuilds}</p><p className="text-xs text-slate-400">builds totais</p></div>
         </Card>
       </div>
+
+      <CreateUserForm />
 
       <AdminClient users={rows} />
     </div>
