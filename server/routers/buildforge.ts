@@ -16,6 +16,8 @@ import {
   getBuildDetails,
   getDashboardData,
   getBackupDownload,
+  deleteProject,
+  deleteWorker,
   deleteWebhook,
   listAuditEvents,
   listArtifacts,
@@ -116,6 +118,14 @@ export const buildforgeRouter = router({
           throw toTrpcError(error);
         }
       }),
+    delete: toolProcedure("projects").input(z.object({ projectId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      try {
+        await deleteProject({ actor: actorFromUser(ctx.user), projectId: input.projectId });
+        return { success: true };
+      } catch (error) {
+        throw toTrpcError(error);
+      }
+    }),
   }),
   builds: router({
     list: toolProcedure("builds").input(z.object({ projectId: z.number().int().positive().optional() }).optional()).query(async ({ ctx, input }) => {
@@ -174,6 +184,14 @@ export const buildforgeRouter = router({
           throw toTrpcError(error);
         }
       }),
+    delete: adminProcedure.input(z.object({ workerId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      try {
+        await deleteWorker({ actor: actorFromUser(ctx.user), workerId: input.workerId });
+        return { success: true };
+      } catch (error) {
+        throw toTrpcError(error);
+      }
+    }),
     heartbeat: publicProcedure.input(z.object({ token: z.string().min(20), activeBuilds: z.number().int().min(0).max(8).optional() })).mutation(async ({ input }) => {
       try {
         return await heartbeatWorker(input);

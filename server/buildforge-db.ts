@@ -205,6 +205,24 @@ export async function listProjects(actor: PlatformActor) {
     .orderBy(desc(projects.updatedAt));
 }
 
+export async function deleteProject(input: { actor: PlatformActor; projectId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [project] = await db.select().from(projects).where(eq(projects.id, input.projectId)).limit(1);
+  if (!project || (!isPlatformAdmin(input.actor) && project.ownerId !== input.actor.id)) {
+    throw new Error("Projeto não encontrado ou não autorizado.");
+  }
+  const [active] = await db
+    .select({ total: count() })
+    .from(builds)
+    .where(and(eq(builds.projectId, input.projectId), sql`${builds.status} in ('queued', 'running')`));
+  if (Number(active?.total ?? 0) > 0) {
+    throw new Error("Não é possível excluir um projeto com builds em fila ou em execução. Cancele-os antes.");
+  }
+  await db.delete(projects).where(eq(projects.id, input.projectId));
+  await addAuditLog({ actorId: input.actor.id, action: "project.deleted", entityType: "project", entityId: String(input.projectId), metadata: { name: project.name } });
+}
+
 export async function createProject(input: {
   actor: PlatformActor;
   name: string;
@@ -556,6 +574,23 @@ export async function listWorkers(actor: PlatformActor) {
     ...worker,
     status: worker.status === "online" && (!worker.lastHeartbeatAt || worker.lastHeartbeatAt.getTime() < staleCutoff) ? "offline" : worker.status,
   }));
+}
+
+export async function deleteWorker(input: { actor: PlatformActor; workerId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  if (!isPlatformAdmin(input.actor)) throw new Error("Apenas administradores podem excluir workers.");
+  const [worker] = await db.select().from(workers).where(eq(workers.id, input.workerId)).limit(1);
+  if (!worker) throw new Error("Worker não encontrado.");
+  const [active] = await db
+    .select({ total: count() })
+    .from(builds)
+    .where(and(eq(builds.workerId, input.workerId), sql`${builds.status} in ('queued', 'running')`));
+  if (Number(active?.total ?? 0) > 0) {
+    throw new Error("Não é possível excluir um worker com build em fila ou em execução.");
+  }
+  await db.delete(workers).where(eq(workers.id, input.workerId));
+  await addAuditLog({ actorId: input.actor.id, action: "worker.deleted", entityType: "worker", entityId: String(input.workerId), metadata: { name: worker.name } });
 }
 
 function hashWorkerToken(token: string) {

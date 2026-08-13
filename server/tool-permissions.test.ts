@@ -68,4 +68,17 @@ describe("permissões de ferramentas", () => {
       message: "Esta área é exclusiva para administradores.",
     });
   });
+
+  it("não permite exclusão direta por uma conta cliente sem a ferramenta ou papel exigidos", async () => {
+    const caller = appRouter.createCaller(createClientContext(["dashboard"]));
+
+    await expect(caller.buildforge.projects.delete({ projectId: 1 })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Esta ferramenta não foi liberada para a sua conta.",
+    });
+    await expect(caller.buildforge.workers.delete({ workerId: 1 })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Esta área é exclusiva para administradores.",
+    });
+  });
 });

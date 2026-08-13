@@ -96,3 +96,7 @@
 - [x] Auditar explicitamente Configurações e demais áreas administrativas, comprovando acesso integral do administrador sem bloqueios indevidos.
 - [ ] Validar no navegador com uma conta cliente: login, menu reduzido, rota negada, quota de build e bloqueio ao atingir o limite.
 - [x] Salvar checkpoint do gerenciamento administrativo de clientes.
+- [ ] Retomar, quando o usuário disponibilizar uma máquina de build, a validação externa com token FMD real, relatório do Doctor, worker online e build do Maximus.
+- [x] Corrigir o bloqueio indevido de rotas para a conta administradora no acesso móvel.
+- [x] Adicionar exclusão confirmada e autorizada de projetos não utilizados.
+- [x] Adicionar exclusão confirmada e autorizada de workers não utilizados.
