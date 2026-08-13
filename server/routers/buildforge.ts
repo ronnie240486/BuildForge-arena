@@ -24,11 +24,13 @@ import {
   deleteWebhook,
   listAuditEvents,
   listArtifacts,
+  listAiProviderConfigs,
   listBuilds,
   listBackups,
   listProjects,
   listTemplates,
   listSigningKeys,
+  listStudioModels,
   listUsersForAdmin,
   listWorkers,
   listWebhooks,
@@ -37,7 +39,10 @@ import {
   registerWorker,
   requestBuildCancellation,
   retryBuildWithApprovedFixes,
+  refineStudioPrompt,
   restoreWorkspaceBackup,
+  removeAiProviderConfig,
+  saveAiProviderConfig,
   setAiFixStatus,
   uploadArtifact,
   uploadProjectZip,
@@ -360,6 +365,20 @@ export const buildforgeRouter = router({
     }),
   }),
   studio: router({
+    providers: adminProcedure.query(async () => listAiProviderConfigs()),
+    models: adminProcedure.query(async () => ({ models: await listStudioModels() })),
+    saveProvider: adminProcedure.input(z.object({ provider: z.enum(["openai", "anthropic", "gemini"]), apiKey: z.string().min(8).max(1024), preferredModel: z.string().trim().max(160).optional() })).mutation(async ({ ctx, input }) => {
+      try { return await saveAiProviderConfig({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    removeProvider: adminProcedure.input(z.object({ provider: z.enum(["openai", "anthropic", "gemini"]) })).mutation(async ({ ctx, input }) => {
+      try { return await removeAiProviderConfig({ actor: actorFromUser(ctx.user), provider: input.provider }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    refinePrompt: adminProcedure.input(z.object({ framework: z.enum(["android", "flutter", "react_native"]), idea: z.string().trim().min(12).max(6000), audience: z.string().trim().max(800).optional(), preferredModel: z.string().trim().max(160).optional(), provider: z.enum(["buildforge", "openai", "anthropic", "gemini"]).optional() })).mutation(async ({ ctx, input }) => {
+      try { return await refineStudioPrompt({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
     generateApp: adminProcedure.input(z.object({ name: z.string().trim().min(2).max(180), framework: z.enum(["android", "flutter", "react_native"]), prompt: z.string().trim().min(12).max(6000) })).mutation(async ({ ctx, input }) => {
       try { return await generateStarterApp({ actor: actorFromUser(ctx.user), ...input }); }
       catch (error) { throw toTrpcError(error); }

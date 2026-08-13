@@ -104,3 +104,11 @@
 - [x] Fechar automaticamente o menu móvel após navegar por qualquer opção e usar o controle visual do BuildForge no topo.
 - [x] Adicionar exclusão individual e em lote de builds, bloqueando builds em fila ou em execução.
 - [x] Adicionar exclusão em lote de projetos com confirmação e sem remover projetos com builds ativos.
+- [x] Criar configuração segura de provedores de IA e campos de chave para Gemini, Claude e ChatGPT, exclusivos do administrador.
+- [x] Exibir em Configurações os campos mascarados e o estado de conexão de Gemini, Claude e ChatGPT, sem revelar valores de API.
+- [x] Persistir de forma criptografada as chaves de provedores inseridas pelo administrador e permitir removê-las a qualquer momento.
+- [ ] Fortalecer o Studio IA com seleção de modelo, biblioteca de prompts, perguntas de refinamento e sugestões profissionais antes da geração.
+- [ ] Implementar integração ampliada com GitHub, QR Code para releases e relatórios operacionais por cliente.
+- [ ] Implementar organizações, equipes, suporte por tickets e marca branca.
+- [ ] Implementar página pública de status, monitoramento de workers e notificações configuráveis.
+- [ ] Definir e implementar builds agendadas e automações recorrentes com arquitetura segura e gerenciável.

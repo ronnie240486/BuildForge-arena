@@ -300,6 +300,21 @@ export const backups = mysqlTable(
   (table) => [index("backups_created_by_created_idx").on(table.createdById, table.createdAt)],
 );
 
+export const aiProviderConfigs = mysqlTable(
+  "ai_provider_configs",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    provider: varchar("provider", { length: 32 }).notNull().unique(),
+    encryptedApiKey: text("encrypted_api_key"),
+    preferredModel: varchar("preferred_model", { length: 160 }),
+    enabled: boolean("enabled").notNull().default(false),
+    updatedById: int("updated_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (table) => [index("ai_provider_configs_enabled_idx").on(table.enabled)],
+);
+
 export const systemMigrations = mysqlTable("system_migrations", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 160 }).notNull().unique(),
