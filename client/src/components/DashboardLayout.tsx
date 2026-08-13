@@ -40,6 +40,7 @@ const items = [
   { icon: ChevronRight, label: "Fila de builds", path: "/builds" },
   { icon: BellRing, label: "Notificações", path: "/notifications" },
   { icon: Cpu, label: "Workers", path: "/workers" },
+  { icon: MonitorCog, label: "Monitoramento", path: "/monitoring", adminOnly: true },
   { icon: HardDriveDownload, label: "Artefatos", path: "/artifacts" },
   { icon: ArchiveRestore, label: "Backups", path: "/backups" },
   { icon: Bot, label: "Assistente IA", path: "/assistant" },
