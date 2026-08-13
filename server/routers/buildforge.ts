@@ -20,6 +20,7 @@ import {
   generateStarterApp,
   getArtifactDownload,
   getBuildDetails,
+  getBrandingConfig,
   getDashboardData,
   getPublicSystemStatus,
   getPublicReleaseDistribution,
@@ -59,6 +60,7 @@ import {
   restoreWorkspaceBackup,
   removeAiProviderConfig,
   saveAiProviderConfig,
+  saveBrandingConfig,
   saveGithubIntegration,
   setAiFixStatus,
   setBuildScheduleEnabled,
@@ -501,6 +503,16 @@ export const buildforgeRouter = router({
     }),
     planMigration: adminProcedure.input(z.object({ target: z.enum(["android", "flutter", "react_native"]), sourceDescription: z.string().trim().min(12).max(8000) })).mutation(async ({ ctx, input }) => {
       try { return await planProjectMigration({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+  }),
+  branding: router({
+    get: adminProcedure.query(async ({ ctx }) => {
+      try { return await getBrandingConfig(actorFromUser(ctx.user)); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    save: adminProcedure.input(z.object({ brandName: z.string().trim().min(2).max(120), tagline: z.string().trim().min(2).max(180), primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/), accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/), logoUrl: z.string().url().max(2048).optional().or(z.literal("")) })).mutation(async ({ ctx, input }) => {
+      try { return await saveBrandingConfig({ actor: actorFromUser(ctx.user), ...input, logoUrl: input.logoUrl || null }); }
       catch (error) { throw toTrpcError(error); }
     }),
   }),

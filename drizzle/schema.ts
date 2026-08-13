@@ -442,6 +442,18 @@ export const systemStatusChecks = mysqlTable(
   (table) => [index("system_status_checks_status_idx").on(table.status)],
 );
 
+export const brandingConfigs = mysqlTable("branding_configs", {
+  id: int("id").autoincrement().primaryKey(),
+  brandName: varchar("brand_name", { length: 120 }).notNull().default("BuildForge"),
+  tagline: varchar("tagline", { length: 180 }).notNull().default("Build e entrega de aplicativos móveis"),
+  primaryColor: varchar("primary_color", { length: 16 }).notNull().default("#4f46e5"),
+  accentColor: varchar("accent_color", { length: 16 }).notNull().default("#7c3aed"),
+  logoUrl: varchar("logo_url", { length: 2048 }),
+  updatedById: int("updated_by_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+});
+
 export const systemMigrations = mysqlTable("system_migrations", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 160 }).notNull().unique(),
