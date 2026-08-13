@@ -500,6 +500,14 @@ export const brandingConfigs = mysqlTable("branding_configs", {
   updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
 });
 
+export const githubCredentials = mysqlTable("github_credentials", {
+  id: int("id").autoincrement().primaryKey(),
+  encryptedToken: text("encrypted_token").notNull(),
+  updatedById: int("updated_by_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+});
+
 export const systemMigrations = mysqlTable("system_migrations", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 160 }).notNull().unique(),

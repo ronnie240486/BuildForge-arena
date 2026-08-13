@@ -24,6 +24,7 @@ import {
   getBuildDetails,
   getBrandingConfig,
   getDashboardData,
+  getGithubCredentialStatus,
   getStudioProjectDetail,
   importStudioGithubRepository,
   getPublicSystemStatus,
@@ -64,9 +65,11 @@ import {
   refineStudioPrompt,
   restoreWorkspaceBackup,
   removeAiProviderConfig,
+  removeGithubCredential,
   saveAiProviderConfig,
   saveBrandingConfig,
   saveGithubIntegration,
+  saveGithubCredential,
   setAiFixStatus,
   setBuildScheduleEnabled,
   uploadArtifact,
@@ -509,6 +512,18 @@ export const buildforgeRouter = router({
       catch (error) { throw toTrpcError(error); }
     }),
     providers: adminProcedure.query(async () => listAiProviderConfigs()),
+    githubCredential: adminProcedure.query(async ({ ctx }) => {
+      try { return await getGithubCredentialStatus(actorFromUser(ctx.user)); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    saveGithubCredential: adminProcedure.input(z.object({ token: z.string().trim().min(20).max(1024) })).mutation(async ({ ctx, input }) => {
+      try { return await saveGithubCredential({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    removeGithubCredential: adminProcedure.mutation(async ({ ctx }) => {
+      try { return await removeGithubCredential(actorFromUser(ctx.user)); }
+      catch (error) { throw toTrpcError(error); }
+    }),
     models: adminProcedure.query(async () => ({ models: await listStudioModels() })),
     saveProvider: adminProcedure.input(z.object({ provider: z.enum(["openai", "anthropic", "gemini"]), apiKey: z.string().min(8).max(1024), preferredModel: z.string().trim().max(160).optional() })).mutation(async ({ ctx, input }) => {
       try { return await saveAiProviderConfig({ actor: actorFromUser(ctx.user), ...input }); }

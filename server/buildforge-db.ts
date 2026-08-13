@@ -11,6 +11,7 @@ import {
   buildSchedules,
   builds,
   buildLogs,
+  githubCredentials,
   githubIntegrations,
   notifications,
   organizationMembers,
@@ -235,6 +236,37 @@ export async function saveGithubIntegration(input: {
   });
   await addAuditLog({ actorId: input.actor.id, action: "github.integration_saved", entityType: "project", entityId: String(project.id), metadata: { repository, branch, autoBuild: input.autoBuild, requestedArtifact: input.requestedArtifact } });
   return { success: true };
+}
+
+export async function getGithubCredentialStatus(actor: PlatformActor) {
+  if (!isPlatformAdmin(actor)) throw new Error("Apenas administradores podem consultar a configuração do GitHub.");
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [credential] = await db.select({ id: githubCredentials.id, updatedAt: githubCredentials.updatedAt }).from(githubCredentials).orderBy(desc(githubCredentials.updatedAt)).limit(1);
+  return { configured: Boolean(credential), updatedAt: credential?.updatedAt ?? null };
+}
+
+export async function saveGithubCredential(input: { actor: PlatformActor; token: string }) {
+  if (!isPlatformAdmin(input.actor)) throw new Error("Apenas administradores podem configurar o token GitHub.");
+  const token = input.token.trim();
+  if (token.length < 20 || token.length > 1024) throw new Error("Informe um token GitHub válido.");
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const encryptedToken = encryptProviderApiKey(token);
+  const [existing] = await db.select({ id: githubCredentials.id }).from(githubCredentials).orderBy(desc(githubCredentials.updatedAt)).limit(1);
+  if (existing) await db.update(githubCredentials).set({ encryptedToken, updatedById: input.actor.id }).where(eq(githubCredentials.id, existing.id));
+  else await db.insert(githubCredentials).values({ encryptedToken, updatedById: input.actor.id });
+  await addAuditLog({ actorId: input.actor.id, action: "github.token_saved", entityType: "github_credential", metadata: { configured: true } });
+  return { configured: true };
+}
+
+export async function removeGithubCredential(actor: PlatformActor) {
+  if (!isPlatformAdmin(actor)) throw new Error("Apenas administradores podem remover o token GitHub.");
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await db.delete(githubCredentials);
+  await addAuditLog({ actorId: actor.id, action: "github.token_removed", entityType: "github_credential" });
+  return { configured: false };
 }
 
 export async function saveAiProviderConfig(input: { actor: PlatformActor; provider: string; apiKey: string; preferredModel?: string }) {

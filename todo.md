@@ -134,3 +134,5 @@
 - [ ] Sincronizar automaticamente os projetos criados ou alterados pelo Studio com um repositório GitHub configurado.
 - [ ] Adicionar chat de criação que aplique alterações de arquivos a partir de pedidos em linguagem natural.
 - [ ] Adicionar prévia temporária ao vivo do website ou frontend gerado pelo Studio.
+- [ ] Adicionar em Configurações o token GitHub mascarado, cifrado e exclusivo do servidor.
+- [ ] Sincronizar automaticamente com GitHub os arquivos criados ou alterados pelo Studio quando houver token configurado.
