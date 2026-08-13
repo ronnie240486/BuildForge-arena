@@ -20,6 +20,7 @@ export const workspaceToolByPath: Record<string, string> = {
   "/webhooks": "__admin__",
   "/fmd": "__admin__",
   "/admin": "__admin__",
+  "/reports": "__admin__",
 };
 
 export function canAccessWorkspacePath(user: WorkspaceAccessUser | null | undefined, path: string) {

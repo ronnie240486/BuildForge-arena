@@ -5,6 +5,7 @@ import {
   ArchiveRestore,
   Bot,
   Boxes,
+  ClipboardList,
   ChevronRight,
   Cpu,
   HardDriveDownload,
@@ -46,6 +47,7 @@ const items = [
   { icon: BookOpen, label: "Tutorial", path: "/tutorial" },
   { icon: Settings2, label: "Configurações", path: "/settings" },
   { icon: Webhook, label: "Webhooks", path: "/webhooks" },
+  { icon: ClipboardList, label: "Relatórios", path: "/reports", adminOnly: true },
   { icon: UsersRound, label: "Administração", path: "/admin", adminOnly: true },
 ];
 

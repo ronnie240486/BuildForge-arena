@@ -17,5 +17,6 @@ describe("acesso ao workspace", () => {
     expect(canAccessWorkspacePath(client, "/artifacts")).toBe(false);
     expect(canAccessWorkspacePath(client, "/settings")).toBe(false);
     expect(canAccessWorkspacePath(client, "/admin")).toBe(false);
+    expect(canAccessWorkspacePath(client, "/reports")).toBe(false);
   });
 });
