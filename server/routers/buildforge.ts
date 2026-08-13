@@ -9,12 +9,15 @@ import {
   createWorkspaceBackup,
   createWebviewProject,
   createBuild,
+  createReleaseDistribution,
   createProject,
   createTemplateProject,
   generateStarterApp,
   getArtifactDownload,
   getBuildDetails,
   getDashboardData,
+  getPublicSystemStatus,
+  getPublicReleaseDistribution,
   getBackupDownload,
   deleteAllBuilds,
   deleteAllProjects,
@@ -30,6 +33,7 @@ import {
   listProjects,
   listTemplates,
   listSigningKeys,
+  listReleaseDistributions,
   listStudioModels,
   listUsersForAdmin,
   listWorkers,
@@ -84,6 +88,11 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 
 export const buildforgeRouter = router({
+  systemStatus: publicProcedure.query(async () => getPublicSystemStatus()),
+  publicRelease: publicProcedure.input(z.object({ token: z.string().min(20).max(96) })).query(async ({ input }) => {
+    try { return await getPublicReleaseDistribution(input.token); }
+    catch (error) { throw toTrpcError(error); }
+  }),
   dashboard: router({
     summary: toolProcedure("dashboard").query(async ({ ctx }) => {
       try {
@@ -316,6 +325,14 @@ export const buildforgeRouter = router({
       } catch (error) {
         throw toTrpcError(error);
       }
+    }),
+    distributions: toolProcedure("releases").query(async ({ ctx }) => {
+      try { return await listReleaseDistributions(actorFromUser(ctx.user)); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    createDistribution: toolProcedure("releases").input(z.object({ artifactId: z.number().int().positive(), label: z.string().trim().min(2).max(160), channel: z.enum(["internal", "beta", "production", "client"]), expiresAt: z.date().optional() })).mutation(async ({ ctx, input }) => {
+      try { return await createReleaseDistribution({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
     }),
   }),
   backups: router({

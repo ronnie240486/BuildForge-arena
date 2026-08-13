@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Check, FileKey, Globe2, ImagePlus, LoaderCircle, LockKeyhole, Rocket, UploadCloud } from "lucide-react";
+import { Check, Copy, FileKey, Globe2, ImagePlus, LoaderCircle, LockKeyhole, QrCode, Rocket, UploadCloud } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { formatDate } from "@/lib/buildforge";
@@ -31,8 +32,13 @@ export default function ReleasesPage() {
   const [keyFile, setKeyFile] = useState<File | null>(null);
   const [keyLabel, setKeyLabel] = useState("");
   const [keyAlias, setKeyAlias] = useState("");
+  const [distributionArtifactId, setDistributionArtifactId] = useState("");
+  const [distributionLabel, setDistributionLabel] = useState("");
+  const [distributionChannel, setDistributionChannel] = useState<"internal" | "beta" | "production" | "client">("client");
   const utils = trpc.useUtils();
   const signingKeys = trpc.buildforge.releases.signingKeys.useQuery();
+  const artifacts = trpc.buildforge.artifacts.list.useQuery();
+  const distributions = trpc.buildforge.releases.distributions.useQuery();
   const createWebview = trpc.buildforge.releases.createWebview.useMutation({
     onSuccess: (project) => {
       toast.success(`Projeto WebView criado · ${project.framework}`);
@@ -50,6 +56,7 @@ export default function ReleasesPage() {
     },
     onError: (error) => toast.error(error.message),
   });
+  const createDistribution = trpc.buildforge.releases.createDistribution.useMutation({ onSuccess: () => { toast.success("Link de release e QR Code criados."); void utils.buildforge.releases.distributions.invalidate(); setDistributionLabel(""); }, onError: (error) => toast.error(error.message) });
   const togglePermission = (permission: string) => setSelectedPermissions((current) => current.includes(permission) ? current.filter((item) => item !== permission) : [...current, permission]);
   const asImagePayload = async (file: File | null) => file ? { filename: file.name, contentType: file.type || "image/png", contentBase64: await fileBase64(file) } : undefined;
   const createSite = async (event: React.FormEvent) => {
@@ -89,6 +96,7 @@ export default function ReleasesPage() {
           <div className="mt-6 border-t border-slate-100 pt-4 dark:border-slate-800"><h3 className="text-sm font-semibold text-slate-900 dark:text-white">Chaves cadastradas</h3>{signingKeys.isLoading ? <LoaderCircle className="mt-4 h-4 w-4 animate-spin text-amber-500" /> : signingKeys.data?.length ? <div className="mt-3 space-y-2">{signingKeys.data.map((key) => <div key={key.id} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-slate-900"><FileKey className="h-4 w-4 text-amber-500" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-slate-800 dark:text-slate-200">{key.label}</span><span className="block text-xs text-slate-500">alias {key.alias} · criado {formatDate(key.createdAt)} · vence {key.expiresAt ? formatDate(key.expiresAt) : "sem prazo"}</span></span><Check className="h-4 w-4 text-emerald-500" /></div>)}</div> : <p className="mt-3 text-sm text-slate-500">Nenhuma chave cadastrada.</p>}</div>
         </div>
       </div>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950"><div className="flex items-center gap-3"><span className="rounded-xl bg-emerald-500/10 p-2 text-emerald-600 dark:text-emerald-300"><QrCode className="h-5 w-5" /></span><div><h2 className="font-semibold text-slate-950 dark:text-white">Distribuição por QR Code</h2><p className="mt-0.5 text-xs text-slate-500">Crie um link seguro para um APK ou AAB. O QR Code abre uma página pública de download sem expor o armazenamento.</p></div></div><form onSubmit={(event) => { event.preventDefault(); createDistribution.mutate({ artifactId: Number(distributionArtifactId), label: distributionLabel, channel: distributionChannel }); }} className="mt-5 grid gap-3 lg:grid-cols-[1.3fr_1fr_1fr_auto]"><select value={distributionArtifactId} onChange={(event) => setDistributionArtifactId(event.target.value)} required className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">Selecionar artefato APK/AAB</option>{artifacts.data?.filter((artifact) => artifact.type === "apk" || artifact.type === "aab").map((artifact) => <option key={artifact.id} value={artifact.id}>{artifact.filename}</option>)}</select><input value={distributionLabel} onChange={(event) => setDistributionLabel(event.target.value)} required minLength={2} placeholder="Nome da entrega" className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900" /><select value={distributionChannel} onChange={(event) => setDistributionChannel(event.target.value as typeof distributionChannel)} className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="client">Cliente</option><option value="beta">Beta</option><option value="production">Produção</option><option value="internal">Interno</option></select><button disabled={createDistribution.isPending} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-50">{createDistribution.isPending && <LoaderCircle className="h-4 w-4 animate-spin" />}Gerar QR</button></form>{distributions.data?.length ? <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{distributions.data.map((distribution) => { const shareUrl = `${window.location.origin}/release/${distribution.token}`; return <article key={distribution.id} className="flex gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800"><QRCodeSVG value={shareUrl} size={72} bgColor="transparent" fgColor="#8b5cf6" includeMargin /><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{distribution.label}</p><p className="mt-1 text-xs text-slate-500">{distribution.filename} · {distribution.releaseChannel}</p><button onClick={() => navigator.clipboard.writeText(shareUrl).then(() => toast.success("Link de release copiado."))} className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-violet-600 dark:text-violet-300"><Copy className="h-3.5 w-3.5" /> Copiar link</button></div></article>; })}</div> : <p className="mt-4 text-sm text-slate-500">Ainda não há links de distribuição criados.</p>}</section>
     </div>
   );
 }

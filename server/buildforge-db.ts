@@ -11,8 +11,10 @@ import {
   buildLogs,
   notifications,
   projects,
+  releaseDistributions,
   projectTemplates,
   signingKeys,
+  systemStatusChecks,
   users,
   webhooks,
   webviewApps,
@@ -76,6 +78,27 @@ export async function listAiProviderConfigs() {
     const saved = byProvider.get(provider.id);
     return { id: provider.id, name: provider.name, family: provider.family, description: provider.description, configured: provider.id === "buildforge" || Boolean(saved?.enabled && saved.encryptedApiKey), preferredModel: saved?.preferredModel ?? null, managedInSettings: provider.id !== "buildforge" };
   });
+}
+
+export async function getPublicSystemStatus() {
+  const db = await getDb();
+  if (!db) return { overall: "degraded" as const, checkedAt: new Date(), components: [{ component: "Banco de dados", status: "degraded", summary: "Conexão indisponível para verificação.", checkedAt: new Date() }] };
+  const [stored, workerRows] = await Promise.all([db.select().from(systemStatusChecks), db.select({ id: workers.id, status: workers.status, lastHeartbeatAt: workers.lastHeartbeatAt }).from(workers)]);
+  const now = Date.now();
+  const workersOnline = workerRows.filter((worker) => worker.status === "online" && worker.lastHeartbeatAt && now - worker.lastHeartbeatAt.getTime() < 120_000).length;
+  const defaults = [
+    { component: "API BuildForge", status: "operational", summary: "API respondendo normalmente." },
+    { component: "Banco de dados", status: "operational", summary: "Persistência disponível." },
+    { component: "Armazenamento de artefatos", status: "operational", summary: "Links temporários e metadados operacionais." },
+    { component: "Workers", status: workersOnline > 0 ? "operational" : "maintenance", summary: workersOnline > 0 ? `${workersOnline} worker(s) online.` : "Nenhum worker online no momento." },
+  ];
+  const overrides = new Map(stored.map((row) => [row.component, row]));
+  const components = defaults.map((item) => {
+    const override = overrides.get(item.component);
+    return override ? { component: item.component, status: override.status, summary: override.summary, checkedAt: override.checkedAt } : { ...item, checkedAt: new Date() };
+  });
+  const overall = components.some((item) => item.status === "outage") ? "outage" : components.some((item) => item.status === "degraded") ? "degraded" : components.some((item) => item.status === "maintenance") ? "maintenance" : "operational";
+  return { overall, checkedAt: new Date(), components };
 }
 
 export async function saveAiProviderConfig(input: { actor: PlatformActor; provider: string; apiKey: string; preferredModel?: string }) {
@@ -550,6 +573,34 @@ export async function getArtifactDownload(actor: PlatformActor, artifactId: numb
   if (!row || (!isPlatformAdmin(actor) && row.ownerId !== actor.id)) throw new Error("Artefato não encontrado ou não autorizado.");
   if (row.artifact.expiresAt && row.artifact.expiresAt < new Date()) throw new Error("O artefato expirou.");
   return { url: await storageGetSignedUrl(row.artifact.storageKey), filename: row.artifact.filename };
+}
+
+export async function createReleaseDistribution(input: { actor: PlatformActor; artifactId: number; label: string; channel: "internal" | "beta" | "production" | "client"; expiresAt?: Date }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [row] = await db.select({ artifact: artifacts, ownerId: projects.ownerId }).from(artifacts).innerJoin(projects, eq(artifacts.projectId, projects.id)).where(eq(artifacts.id, input.artifactId)).limit(1);
+  if (!row || (!isPlatformAdmin(input.actor) && row.ownerId !== input.actor.id)) throw new Error("Artefato não encontrado ou não autorizado.");
+  if (row.artifact.expiresAt && row.artifact.expiresAt < new Date()) throw new Error("O artefato expirou e não pode ser distribuído.");
+  const token = randomBytes(32).toString("base64url");
+  const [result] = await db.insert(releaseDistributions).values({ projectId: row.artifact.projectId, artifactId: input.artifactId, releaseChannel: input.channel, label: input.label.trim().slice(0, 160) || row.artifact.filename, token, expiresAt: input.expiresAt, createdById: input.actor.id });
+  await addAuditLog({ actorId: input.actor.id, action: "release.distribution_created", entityType: "release_distribution", entityId: String(result.insertId), metadata: { artifactId: input.artifactId, channel: input.channel } });
+  return { id: Number(result.insertId), token, label: input.label.trim().slice(0, 160) || row.artifact.filename, expiresAt: input.expiresAt ?? null };
+}
+
+export async function listReleaseDistributions(actor: PlatformActor) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const rows = await db.select({ distribution: releaseDistributions, artifact: artifacts, ownerId: projects.ownerId }).from(releaseDistributions).innerJoin(artifacts, eq(releaseDistributions.artifactId, artifacts.id)).innerJoin(projects, eq(releaseDistributions.projectId, projects.id)).orderBy(desc(releaseDistributions.createdAt));
+  return rows.filter((row) => isPlatformAdmin(actor) || row.ownerId === actor.id).map((row) => ({ ...row.distribution, filename: row.artifact.filename }));
+}
+
+export async function getPublicReleaseDistribution(token: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Serviço de distribuição indisponível.");
+  const [row] = await db.select({ distribution: releaseDistributions, artifact: artifacts, project: projects }).from(releaseDistributions).innerJoin(artifacts, eq(releaseDistributions.artifactId, artifacts.id)).innerJoin(projects, eq(releaseDistributions.projectId, projects.id)).where(eq(releaseDistributions.token, token)).limit(1);
+  if (!row || (row.distribution.expiresAt && row.distribution.expiresAt < new Date()) || (row.artifact.expiresAt && row.artifact.expiresAt < new Date())) throw new Error("Este link de release não está mais disponível.");
+  await db.update(releaseDistributions).set({ downloads: sql`${releaseDistributions.downloads} + 1` }).where(eq(releaseDistributions.id, row.distribution.id));
+  return { label: row.distribution.label, projectName: row.project.name, filename: row.artifact.filename, channel: row.distribution.releaseChannel, url: await storageGetSignedUrl(row.artifact.storageKey) };
 }
 
 export async function createBuild(input: {

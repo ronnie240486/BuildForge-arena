@@ -64,6 +64,13 @@
       "when": 1786591848598,
       "tag": "0008_solid_bloodstorm",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1786592496462,
+      "tag": "0009_free_living_mummy",
+      "breakpoints": true
     }
   ]
 }

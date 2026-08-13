@@ -24,6 +24,9 @@ export const artifactType = mysqlEnum("artifact_type", ["apk", "aab", "keystore"
 export const aiFixStatus = mysqlEnum("ai_fix_status", ["proposed", "approved", "applied", "rejected"]);
 export const notificationEvent = mysqlEnum("notification_event", ["build_queued", "build_succeeded", "build_failed"]);
 export const notificationStatus = mysqlEnum("notification_status", ["pending", "sent", "failed"]);
+export const organizationMemberRole = mysqlEnum("organization_role", ["owner", "admin", "developer", "viewer"]);
+export const releaseChannel = mysqlEnum("release_channel", ["internal", "beta", "production", "client"]);
+export const supportTicketStatus = mysqlEnum("ticket_status", ["open", "in_progress", "waiting_customer", "resolved", "closed"]);
 
 export const users = mysqlTable(
   "users",
@@ -313,6 +316,129 @@ export const aiProviderConfigs = mysqlTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
   },
   (table) => [index("ai_provider_configs_enabled_idx").on(table.enabled)],
+);
+
+export const organizations = mysqlTable(
+  "organizations",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerId: int("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 160 }).notNull(),
+    slug: varchar("slug", { length: 100 }).notNull().unique(),
+    githubInstallationId: varchar("github_installation_id", { length: 120 }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (table) => [index("organizations_owner_idx").on(table.ownerId)],
+);
+
+export const organizationMembers = mysqlTable(
+  "organization_members",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    organizationId: int("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    organizationRole: organizationMemberRole.notNull().default("viewer"),
+    invitedById: int("invited_by_id").references(() => users.id, { onDelete: "set null" }),
+    invitedEmail: varchar("invited_email", { length: 320 }),
+    joinedAt: timestamp("joined_at").notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("organization_members_org_user_unique").on(table.organizationId, table.userId), index("organization_members_user_idx").on(table.userId)],
+);
+
+export const supportTickets = mysqlTable(
+  "support_tickets",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerId: int("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    projectId: int("project_id").references(() => projects.id, { onDelete: "set null" }),
+    buildId: int("build_id").references(() => builds.id, { onDelete: "set null" }),
+    subject: varchar("subject", { length: 200 }).notNull(),
+    description: text("description").notNull(),
+    ticketStatus: supportTicketStatus.notNull().default("open"),
+    priority: varchar("priority", { length: 24 }).notNull().default("normal"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("support_tickets_owner_status_idx").on(table.ownerId, table.ticketStatus), index("support_tickets_project_idx").on(table.projectId)],
+);
+
+export const supportMessages = mysqlTable(
+  "support_messages",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ticketId: int("ticket_id").notNull().references(() => supportTickets.id, { onDelete: "cascade" }),
+    authorId: int("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    internal: boolean("internal").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("support_messages_ticket_created_idx").on(table.ticketId, table.createdAt)],
+);
+
+export const releaseDistributions = mysqlTable(
+  "release_distributions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    artifactId: int("artifact_id").notNull().references(() => artifacts.id, { onDelete: "cascade" }),
+    projectId: int("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+    createdById: int("created_by_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    releaseChannel: releaseChannel.notNull().default("internal"),
+    label: varchar("label", { length: 160 }).notNull(),
+    token: varchar("token", { length: 96 }).notNull().unique(),
+    expiresAt: timestamp("expires_at"),
+    downloads: int("downloads").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("release_distributions_project_idx").on(table.projectId)],
+);
+
+export const githubIntegrations = mysqlTable(
+  "github_integrations",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    projectId: int("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }).unique(),
+    ownerId: int("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    repository: varchar("repository", { length: 320 }).notNull(),
+    branch: varchar("branch", { length: 180 }).notNull().default("main"),
+    encryptedWebhookSecret: text("encrypted_webhook_secret").notNull(),
+    autoBuild: boolean("auto_build").notNull().default(true),
+    requestedArtifact: varchar("requested_artifact", { length: 12 }).notNull().default("apk"),
+    lastDeliveryId: varchar("last_delivery_id", { length: 128 }),
+    lastTriggeredAt: timestamp("last_triggered_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (table) => [index("github_integrations_owner_idx").on(table.ownerId)],
+);
+
+export const buildSchedules = mysqlTable(
+  "build_schedules",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    projectId: int("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+    ownerId: int("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 160 }).notNull(),
+    cronExpression: varchar("cron_expression", { length: 120 }).notNull(),
+    requestedArtifact: varchar("requested_artifact", { length: 12 }).notNull().default("apk"),
+    enabled: boolean("enabled").notNull().default(true),
+    lastRunAt: timestamp("last_run_at"),
+    nextRunAt: timestamp("next_run_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (table) => [index("build_schedules_enabled_next_idx").on(table.enabled, table.nextRunAt)],
+);
+
+export const systemStatusChecks = mysqlTable(
+  "system_status_checks",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    component: varchar("component", { length: 80 }).notNull().unique(),
+    status: varchar("status", { length: 24 }).notNull().default("operational"),
+    summary: varchar("summary", { length: 300 }).notNull(),
+    checkedAt: timestamp("checked_at").notNull().defaultNow(),
+  },
+  (table) => [index("system_status_checks_status_idx").on(table.status)],
 );
 
 export const systemMigrations = mysqlTable("system_migrations", {

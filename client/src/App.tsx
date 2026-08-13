@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import BuildForgeWorkspace from "@/pages/BuildForgeWorkspace";
 import LandingPage from "@/pages/Landing";
 import ClientAccessPage from "@/pages/ClientAccess";
+import StatusPage from "@/pages/Status";
+import PublicReleasePage from "@/pages/PublicRelease";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 
@@ -13,6 +15,8 @@ function EntryRouter() {
   const { user, loading } = useAuth();
   if (location === "/login") return <ClientAccessPage mode="login" />;
   if (location === "/register") return <ClientAccessPage mode="register" />;
+  if (location === "/status") return <StatusPage />;
+  if (location.startsWith("/release/")) return <PublicReleasePage token={decodeURIComponent(location.slice("/release/".length))} />;
   if (loading) return <div className="grid min-h-screen place-items-center bg-slate-950"><div className="h-7 w-7 animate-spin rounded-full border-2 border-violet-300 border-t-transparent" /></div>;
   if (!user) return <LandingPage />;
   return <BuildForgeWorkspace />;
