@@ -24,6 +24,7 @@ import {
   MonitorCog,
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { canAccessWorkspacePath } from "@/lib/workspace-access";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
@@ -72,12 +73,9 @@ function Shell({ children, user }: { children: React.ReactNode; user: { name?: s
   const { theme, toggleTheme } = useTheme();
   const { logout } = useAuth();
   const isMobile = useIsMobile();
-  const toolByPath: Record<string, string | undefined> = { "/": "dashboard", "/projects": "projects", "/builds": "builds", "/artifacts": "artifacts", "/releases": "releases" };
   const visibleItems = items.filter((item) => {
-    if (user.role === "admin") return true;
-    if (item.adminOnly) return false;
-    const tool = toolByPath[item.path];
-    return !tool || !user.allowedTools || user.allowedTools.includes(tool);
+    if (item.adminOnly && user.role !== "admin") return false;
+    return canAccessWorkspacePath(user, item.path);
   });
   const pageName = visibleItems.find((item) => item.path === location)?.label ?? "BuildForge";
 

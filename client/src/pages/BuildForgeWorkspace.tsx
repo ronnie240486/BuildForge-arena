@@ -18,6 +18,7 @@ import WorkersPage from "@/pages/Workers";
 import WebhooksPage from "@/pages/Webhooks";
 import FmdPage from "@/pages/Fmd";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { canAccessWorkspacePath } from "@/lib/workspace-access";
 
 const pages: Record<string, React.ComponentType> = {
   "/": DashboardPage,
@@ -38,8 +39,6 @@ const pages: Record<string, React.ComponentType> = {
   "/admin": AdminPage,
 };
 
-const toolByPath: Record<string, string | undefined> = { "/": "dashboard", "/projects": "projects", "/builds": "builds", "/artifacts": "artifacts", "/releases": "releases" };
-
 export default function BuildForgeWorkspace() {
   const [location] = useLocation();
   const { user } = useAuth();
@@ -47,8 +46,7 @@ export default function BuildForgeWorkspace() {
 
   if (!Page) return <NotFound />;
 
-  const requestedTool = toolByPath[location];
-  const isBlocked = user?.role !== "admin" && requestedTool && user?.allowedTools && !user.allowedTools.includes(requestedTool);
+  const isBlocked = Boolean(user && !canAccessWorkspacePath(user, location));
 
   return (
     <DashboardLayout>

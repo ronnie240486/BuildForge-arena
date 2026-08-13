@@ -53,9 +53,29 @@ function toTrpcError(error: unknown) {
   });
 }
 
+type WorkspaceTool = "dashboard" | "projects" | "builds" | "artifacts" | "releases" | "support";
+
+function toolProcedure(tool: WorkspaceTool) {
+  return protectedProcedure.use(({ ctx, next }) => {
+    if (ctx.user.role === "admin") return next();
+    const allowedTools = Array.isArray(ctx.user.allowedTools) ? ctx.user.allowedTools : [];
+    if (!allowedTools.includes(tool)) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Esta ferramenta não foi liberada para a sua conta." });
+    }
+    return next();
+  });
+}
+
+const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== "admin") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Esta área é exclusiva para administradores." });
+  }
+  return next();
+});
+
 export const buildforgeRouter = router({
   dashboard: router({
-    summary: protectedProcedure.query(async ({ ctx }) => {
+    summary: toolProcedure("dashboard").query(async ({ ctx }) => {
       try {
         return await getDashboardData(actorFromUser(ctx.user));
       } catch (error) {
@@ -64,14 +84,14 @@ export const buildforgeRouter = router({
     }),
   }),
   projects: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
+    list: toolProcedure("projects").query(async ({ ctx }) => {
       try {
         return await listProjects(actorFromUser(ctx.user));
       } catch (error) {
         throw toTrpcError(error);
       }
     }),
-    create: protectedProcedure
+    create: toolProcedure("projects")
       .input(z.object({
         name: z.string().trim().min(2).max(180),
         description: z.string().trim().max(2000).optional(),
@@ -87,7 +107,7 @@ export const buildforgeRouter = router({
           throw toTrpcError(error);
         }
       }),
-    uploadZip: protectedProcedure
+    uploadZip: toolProcedure("projects")
       .input(z.object({ projectId: z.number().int().positive(), filename: z.string().min(1).max(255), contentBase64: z.string().min(4).max(56_000_000) }))
       .mutation(async ({ ctx, input }) => {
         try {
@@ -98,14 +118,14 @@ export const buildforgeRouter = router({
       }),
   }),
   builds: router({
-    list: protectedProcedure.input(z.object({ projectId: z.number().int().positive().optional() }).optional()).query(async ({ ctx, input }) => {
+    list: toolProcedure("builds").input(z.object({ projectId: z.number().int().positive().optional() }).optional()).query(async ({ ctx, input }) => {
       try {
         return await listBuilds(actorFromUser(ctx.user), input?.projectId);
       } catch (error) {
         throw toTrpcError(error);
       }
     }),
-    create: protectedProcedure
+    create: toolProcedure("builds")
       .input(z.object({ projectId: z.number().int().positive(), artifact: z.enum(["apk", "aab"]), signingKeyId: z.number().int().positive().optional() }))
       .mutation(async ({ ctx, input }) => {
         try {
@@ -114,7 +134,7 @@ export const buildforgeRouter = router({
           throw toTrpcError(error);
         }
       }),
-    cancel: protectedProcedure.input(z.object({ buildId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    cancel: toolProcedure("builds").input(z.object({ buildId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       try {
         await requestBuildCancellation(actorFromUser(ctx.user), input.buildId);
         return { success: true };
@@ -122,14 +142,14 @@ export const buildforgeRouter = router({
         throw toTrpcError(error);
       }
     }),
-    details: protectedProcedure.input(z.object({ buildId: z.number().int().positive() })).query(async ({ ctx, input }) => {
+    details: toolProcedure("builds").input(z.object({ buildId: z.number().int().positive() })).query(async ({ ctx, input }) => {
       try {
         return await getBuildDetails(actorFromUser(ctx.user), input.buildId);
       } catch (error) {
         throw toTrpcError(error);
       }
     }),
-    retryWithAi: protectedProcedure.input(z.object({ buildId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    retryWithAi: toolProcedure("builds").input(z.object({ buildId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       try {
         return await retryBuildWithApprovedFixes(actorFromUser(ctx.user), input.buildId);
       } catch (error) {
@@ -138,14 +158,14 @@ export const buildforgeRouter = router({
     }),
   }),
   workers: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
+    list: adminProcedure.query(async ({ ctx }) => {
       try {
         return await listWorkers(actorFromUser(ctx.user));
       } catch (error) {
         throw toTrpcError(error);
       }
     }),
-    register: protectedProcedure
+    register: adminProcedure
       .input(z.object({ name: z.string().trim().min(2).max(120), kind: z.enum(["local", "github_actions", "docker"]), capabilities: z.array(z.string().min(1).max(60)).min(1).max(20), maxConcurrency: z.number().int().min(1).max(8) }))
       .mutation(async ({ ctx, input }) => {
         try {
@@ -186,14 +206,14 @@ export const buildforgeRouter = router({
     }),
   }),
   artifacts: router({
-    list: protectedProcedure.input(z.object({ projectId: z.number().int().positive().optional() }).optional()).query(async ({ ctx, input }) => {
+    list: toolProcedure("artifacts").input(z.object({ projectId: z.number().int().positive().optional() }).optional()).query(async ({ ctx, input }) => {
       try {
         return await listArtifacts(actorFromUser(ctx.user), input?.projectId);
       } catch (error) {
         throw toTrpcError(error);
       }
     }),
-    upload: protectedProcedure
+    upload: toolProcedure("artifacts")
       .input(z.object({ projectId: z.number().int().positive(), buildId: z.number().int().positive().optional(), type: z.enum(["apk", "aab", "keystore", "log", "source"]), filename: z.string().min(1).max(255), contentType: z.string().max(120), contentBase64: z.string().min(4).max(56_000_000) }))
       .mutation(async ({ ctx, input }) => {
         try {
@@ -202,7 +222,7 @@ export const buildforgeRouter = router({
           throw toTrpcError(error);
         }
       }),
-    download: protectedProcedure.input(z.object({ artifactId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    download: toolProcedure("artifacts").input(z.object({ artifactId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       try {
         return await getArtifactDownload(actorFromUser(ctx.user), input.artifactId);
       } catch (error) {
@@ -211,14 +231,14 @@ export const buildforgeRouter = router({
     }),
   }),
   ai: router({
-    analyze: protectedProcedure.input(z.object({ buildId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    analyze: adminProcedure.input(z.object({ buildId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       try {
         return await analyzeBuildWithAi(actorFromUser(ctx.user), input.buildId);
       } catch (error) {
         throw toTrpcError(error);
       }
     }),
-    decide: protectedProcedure.input(z.object({ fixId: z.number().int().positive(), status: z.enum(["approved", "rejected"]) })).mutation(async ({ ctx, input }) => {
+    decide: adminProcedure.input(z.object({ fixId: z.number().int().positive(), status: z.enum(["approved", "rejected"]) })).mutation(async ({ ctx, input }) => {
       try {
         await setAiFixStatus(actorFromUser(ctx.user), input.fixId, input.status);
         return { success: true };
@@ -228,21 +248,21 @@ export const buildforgeRouter = router({
     }),
   }),
   releases: router({
-    createWebview: protectedProcedure.input(z.object({ siteUrl: z.string().url().max(2048), appName: z.string().trim().min(2).max(120), permissions: z.array(z.enum(["internet", "camera", "location", "notifications", "storage"])).max(5), allowNavigation: z.boolean(), icon: z.object({ filename: z.string().min(1).max(255), contentType: z.string().startsWith("image/"), contentBase64: z.string().min(4).max(7_000_000) }).optional(), splash: z.object({ filename: z.string().min(1).max(255), contentType: z.string().startsWith("image/"), contentBase64: z.string().min(4).max(7_000_000) }).optional() })).mutation(async ({ ctx, input }) => {
+    createWebview: toolProcedure("releases").input(z.object({ siteUrl: z.string().url().max(2048), appName: z.string().trim().min(2).max(120), permissions: z.array(z.enum(["internet", "camera", "location", "notifications", "storage"])).max(5), allowNavigation: z.boolean(), icon: z.object({ filename: z.string().min(1).max(255), contentType: z.string().startsWith("image/"), contentBase64: z.string().min(4).max(7_000_000) }).optional(), splash: z.object({ filename: z.string().min(1).max(255), contentType: z.string().startsWith("image/"), contentBase64: z.string().min(4).max(7_000_000) }).optional() })).mutation(async ({ ctx, input }) => {
       try {
         return await createWebviewProject({ actor: actorFromUser(ctx.user), ...input });
       } catch (error) {
         throw toTrpcError(error);
       }
     }),
-    signingKeys: protectedProcedure.query(async ({ ctx }) => {
+    signingKeys: toolProcedure("releases").query(async ({ ctx }) => {
       try {
         return await listSigningKeys(actorFromUser(ctx.user));
       } catch (error) {
         throw toTrpcError(error);
       }
     }),
-    uploadSigningKey: protectedProcedure.input(z.object({ label: z.string().trim().min(2).max(120), alias: z.string().trim().min(1).max(160), filename: z.string().min(1).max(255), contentBase64: z.string().min(4).max(14_000_000), storePassword: z.string().max(512).optional(), keyPassword: z.string().max(512).optional() })).mutation(async ({ ctx, input }) => {
+    uploadSigningKey: toolProcedure("releases").input(z.object({ label: z.string().trim().min(2).max(120), alias: z.string().trim().min(1).max(255), filename: z.string().min(1).max(255), contentBase64: z.string().min(4).max(14_000_000), storePassword: z.string().max(512).optional(), keyPassword: z.string().max(512).optional() })).mutation(async ({ ctx, input }) => {
       try {
         return await uploadSigningKey({ actor: actorFromUser(ctx.user), ...input });
       } catch (error) {
@@ -251,28 +271,28 @@ export const buildforgeRouter = router({
     }),
   }),
   backups: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
+    list: adminProcedure.query(async ({ ctx }) => {
       try {
         return await listBackups(actorFromUser(ctx.user));
       } catch (error) {
         throw toTrpcError(error);
       }
     }),
-    create: protectedProcedure.mutation(async ({ ctx }) => {
+    create: adminProcedure.mutation(async ({ ctx }) => {
       try {
         return await createWorkspaceBackup(actorFromUser(ctx.user));
       } catch (error) {
         throw toTrpcError(error);
       }
     }),
-    download: protectedProcedure.input(z.object({ backupId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    download: adminProcedure.input(z.object({ backupId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       try {
         return await getBackupDownload(actorFromUser(ctx.user), input.backupId);
       } catch (error) {
         throw toTrpcError(error);
       }
     }),
-    restore: protectedProcedure.input(z.object({ backupId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    restore: adminProcedure.input(z.object({ backupId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       try {
         return await restoreWorkspaceBackup(actorFromUser(ctx.user), input.backupId);
       } catch (error) {
@@ -281,14 +301,14 @@ export const buildforgeRouter = router({
     }),
   }),
   templates: router({
-    list: protectedProcedure.query(async () => {
+    list: adminProcedure.query(async () => {
       try {
         return await listTemplates();
       } catch (error) {
         throw toTrpcError(error);
       }
     }),
-    createProject: protectedProcedure.input(z.object({ templateId: z.number().int().positive(), name: z.string().trim().min(2).max(180).optional() })).mutation(async ({ ctx, input }) => {
+    createProject: adminProcedure.input(z.object({ templateId: z.number().int().positive(), name: z.string().trim().min(2).max(180).optional() })).mutation(async ({ ctx, input }) => {
       try {
         return await createTemplateProject({ actor: actorFromUser(ctx.user), ...input });
       } catch (error) {
@@ -297,51 +317,50 @@ export const buildforgeRouter = router({
     }),
   }),
   studio: router({
-    generateApp: protectedProcedure.input(z.object({ name: z.string().trim().min(2).max(180), framework: z.enum(["android", "flutter", "react_native"]), prompt: z.string().trim().min(12).max(6000) })).mutation(async ({ ctx, input }) => {
+    generateApp: adminProcedure.input(z.object({ name: z.string().trim().min(2).max(180), framework: z.enum(["android", "flutter", "react_native"]), prompt: z.string().trim().min(12).max(6000) })).mutation(async ({ ctx, input }) => {
       try { return await generateStarterApp({ actor: actorFromUser(ctx.user), ...input }); }
       catch (error) { throw toTrpcError(error); }
     }),
-    planMigration: protectedProcedure.input(z.object({ target: z.enum(["android", "flutter", "react_native"]), sourceDescription: z.string().trim().min(12).max(8000) })).mutation(async ({ ctx, input }) => {
+    planMigration: adminProcedure.input(z.object({ target: z.enum(["android", "flutter", "react_native"]), sourceDescription: z.string().trim().min(12).max(8000) })).mutation(async ({ ctx, input }) => {
       try { return await planProjectMigration({ actor: actorFromUser(ctx.user), ...input }); }
       catch (error) { throw toTrpcError(error); }
     }),
   }),
   webhooks: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
+    list: adminProcedure.query(async ({ ctx }) => {
       try { return await listWebhooks(actorFromUser(ctx.user)); }
       catch (error) { throw toTrpcError(error); }
     }),
-    create: protectedProcedure.input(z.object({ name: z.string().trim().min(2).max(120), url: z.string().url().max(2048), events: z.array(z.enum(["build_queued", "build_succeeded", "build_failed"])).min(1).max(3), secret: z.string().max(512).optional() })).mutation(async ({ ctx, input }) => {
+    create: adminProcedure.input(z.object({ name: z.string().trim().min(2).max(120), url: z.string().url().max(2048), events: z.array(z.enum(["build_queued", "build_succeeded", "build_failed"])).min(1).max(3), secret: z.string().max(512).optional() })).mutation(async ({ ctx, input }) => {
       try { return await createWebhook({ actor: actorFromUser(ctx.user), ...input }); }
       catch (error) { throw toTrpcError(error); }
     }),
-    delete: protectedProcedure.input(z.object({ webhookId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    delete: adminProcedure.input(z.object({ webhookId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       try { await deleteWebhook({ actor: actorFromUser(ctx.user), webhookId: input.webhookId }); return { success: true }; }
       catch (error) { throw toTrpcError(error); }
     }),
   }),
   admin: router({
-    createClient: protectedProcedure
+    createClient: adminProcedure
       .input(z.object({ name: z.string().trim().min(2).max(120), email: z.string().email().max(320), password: z.string().min(8).max(128), buildLimit: z.number().int().min(-1).max(100000), allowedTools: z.array(z.enum(["dashboard", "projects", "builds", "artifacts", "releases", "support"])) .min(1).max(6) }))
       .mutation(async ({ ctx, input }) => {
-        if (ctx.user.role !== "admin") throw new Error("Apenas administradores podem criar clientes.");
         return createClientByAdmin(input);
       }),
-    users: protectedProcedure.query(async ({ ctx }) => {
+    users: adminProcedure.query(async ({ ctx }) => {
       try {
         return await listUsersForAdmin(actorFromUser(ctx.user));
       } catch (error) {
         throw toTrpcError(error);
       }
     }),
-    audit: protectedProcedure.query(async ({ ctx }) => {
+    audit: adminProcedure.query(async ({ ctx }) => {
       try {
         return await listAuditEvents(actorFromUser(ctx.user));
       } catch (error) {
         throw toTrpcError(error);
       }
     }),
-    updateUser: protectedProcedure
+    updateUser: adminProcedure
       .input(z.object({ userId: z.number().int().positive(), role: z.enum(["admin", "member"]), buildLimit: z.number().int().min(-1).max(100000) }))
       .mutation(async ({ ctx, input }) => {
         try {
