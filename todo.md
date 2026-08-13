@@ -100,3 +100,4 @@
 - [x] Corrigir o bloqueio indevido de rotas para a conta administradora no acesso móvel.
 - [x] Adicionar exclusão confirmada e autorizada de projetos não utilizados.
 - [x] Adicionar exclusão confirmada e autorizada de workers não utilizados.
+- [x] Corrigir a atribuição indevida de papel membro à conta administradora após login Manus OAuth no celular.

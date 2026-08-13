@@ -5,6 +5,10 @@ import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
+export function roleUpdateFromOAuth(user: Pick<InsertUser, "openId" | "role">): "admin" | undefined {
+  return user.openId === ENV.ownerOpenId || user.role === "admin" ? "admin" : undefined;
+}
+
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
@@ -52,9 +56,12 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.lastSignedIn = user.lastSignedIn;
       updateSet.lastSignedIn = user.lastSignedIn;
     }
-    const normalizedRole = user.openId === ENV.ownerOpenId || user.role === "admin" ? "admin" : "member";
-    values.role = normalizedRole;
-    updateSet.role = normalizedRole;
+    const roleUpdate = roleUpdateFromOAuth(user);
+    // Em um login OAuth comum não recebemos o papel no perfil remoto. Atualizar
+    // `role` para member a cada callback rebaixaria uma conta já promovida no banco.
+    // Só promovemos explicitamente; em duplicatas preservamos o papel persistido.
+    values.role = roleUpdate ?? "member";
+    if (roleUpdate) updateSet.role = roleUpdate;
 
     if (!values.lastSignedIn) {
       values.lastSignedIn = new Date();
