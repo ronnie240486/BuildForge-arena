@@ -36,6 +36,7 @@ import {
   listAiProviderConfigs,
   listBuilds,
   listBuildSchedules,
+  listBuildNotifications,
   listGithubIntegrations,
   listBackups,
   listProjects,
@@ -185,6 +186,12 @@ export const buildforgeRouter = router({
       requestedArtifact: z.enum(["apk", "aab"]),
     })).mutation(async ({ ctx, input }) => {
       try { return await saveGithubIntegration({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+  }),
+  notifications: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      try { return await listBuildNotifications(actorFromUser(ctx.user)); }
       catch (error) { throw toTrpcError(error); }
     }),
   }),

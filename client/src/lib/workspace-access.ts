@@ -7,6 +7,7 @@ export const workspaceToolByPath: Record<string, string> = {
   "/": "dashboard",
   "/projects": "projects",
   "/builds": "builds",
+  "/notifications": "builds",
   "/artifacts": "artifacts",
   "/releases": "releases",
   "/workers": "__admin__",

@@ -349,6 +349,28 @@ async function emitBuildNotification(input: { buildId: number; event: "build_que
   void dispatchBuildWebhooks(input);
 }
 
+export async function listBuildNotifications(actor: PlatformActor) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const query = db
+    .select({
+      id: notifications.id,
+      event: notifications.event,
+      status: notifications.status,
+      summary: notifications.summary,
+      buildId: notifications.buildId,
+      sentAt: notifications.sentAt,
+      createdAt: notifications.createdAt,
+      projectName: projects.name,
+    })
+    .from(notifications)
+    .innerJoin(builds, eq(builds.id, notifications.buildId))
+    .innerJoin(projects, eq(projects.id, builds.projectId));
+  return isPlatformAdmin(actor)
+    ? query.orderBy(desc(notifications.createdAt)).limit(100)
+    : query.where(eq(projects.ownerId, actor.id)).orderBy(desc(notifications.createdAt)).limit(100);
+}
+
 async function dispatchBuildWebhooks(input: { buildId: number; event: "build_queued" | "build_succeeded" | "build_failed"; summary: string; artifactId?: number }) {
   const db = await getDb();
   if (!db) return;

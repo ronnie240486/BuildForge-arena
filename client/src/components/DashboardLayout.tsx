@@ -3,6 +3,7 @@ import { useIsMobile } from "@/hooks/useMobile";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   ArchiveRestore,
+  BellRing,
   Bot,
   Boxes,
   CalendarClock,
@@ -37,6 +38,7 @@ const items = [
   { icon: LayoutDashboard, label: "Visão geral", path: "/" },
   { icon: Boxes, label: "Projetos", path: "/projects" },
   { icon: ChevronRight, label: "Fila de builds", path: "/builds" },
+  { icon: BellRing, label: "Notificações", path: "/notifications" },
   { icon: Cpu, label: "Workers", path: "/workers" },
   { icon: HardDriveDownload, label: "Artefatos", path: "/artifacts" },
   { icon: ArchiveRestore, label: "Backups", path: "/backups" },

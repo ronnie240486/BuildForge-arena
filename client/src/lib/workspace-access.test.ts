@@ -14,6 +14,7 @@ describe("acesso ao workspace", () => {
     const client = { role: "member", allowedTools: ["dashboard", "projects", "builds"] };
 
     expect(canAccessWorkspacePath(client, "/projects")).toBe(true);
+    expect(canAccessWorkspacePath(client, "/notifications")).toBe(true);
     expect(canAccessWorkspacePath(client, "/artifacts")).toBe(false);
     expect(canAccessWorkspacePath(client, "/settings")).toBe(false);
     expect(canAccessWorkspacePath(client, "/admin")).toBe(false);

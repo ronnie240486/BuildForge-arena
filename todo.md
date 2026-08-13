@@ -121,6 +121,11 @@
 - [ ] Adicionar APIs e testes de autorização para operações de equipes e membros.
 - [ ] Validar visualmente em desktop e mobile o fluxo completo de organizações e equipes.
 - [ ] Implementar página pública de status, monitoramento de workers e notificações configuráveis.
+- [ ] Criar painel administrativo de saúde de workers com heartbeat, Doctor, capacidade e alerta de indisponibilidade.
+- [ ] Criar central de notificações para visualizar eventos recentes de builds e status de entrega.
+- [ ] Adicionar a Central de Notificações ao menu do painel, respeitando permissões por papel e ferramenta.
+- [ ] Validar a navegação até Notificações pelo menu em desktop e mobile, incluindo estados de carregamento, vazio e erro.
+- [ ] Adicionar estado de erro e ação de tentar novamente na Central de Notificações.
 - [ ] Definir e implementar builds agendadas e automações recorrentes com arquitetura segura e gerenciável.
 - [ ] Criar agendamentos internos com horário, projeto, formato de build, ativação e histórico de execução.
 - [ ] Adicionar tela administrativa para criar, pausar e remover agendamentos de build.
