@@ -20,6 +20,7 @@ import {
   createStudioProject,
   createTemplateProject,
   generateStarterApp,
+  generateStudioAlternatives,
   getArtifactDownload,
   getBuildDetails,
   getBrandingConfig,
@@ -535,6 +536,10 @@ export const buildforgeRouter = router({
     }),
     refinePrompt: adminProcedure.input(z.object({ framework: z.enum(["android", "flutter", "react_native"]), idea: z.string().trim().min(12).max(6000), audience: z.string().trim().max(800).optional(), preferredModel: z.string().trim().max(160).optional(), provider: z.enum(["buildforge", "openai", "anthropic", "gemini"]).optional() })).mutation(async ({ ctx, input }) => {
       try { return await refineStudioPrompt({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    alternatives: adminProcedure.input(z.object({ idea: z.string().trim().min(3).max(4000), projectType: z.enum(["website", "application"]), audience: z.string().trim().max(800).optional() })).mutation(async ({ ctx, input }) => {
+      try { return await generateStudioAlternatives({ actor: actorFromUser(ctx.user), ...input }); }
       catch (error) { throw toTrpcError(error); }
     }),
     generateApp: adminProcedure.input(z.object({ name: z.string().trim().min(2).max(180), framework: z.enum(["android", "flutter", "react_native"]), prompt: z.string().trim().min(12).max(6000) })).mutation(async ({ ctx, input }) => {

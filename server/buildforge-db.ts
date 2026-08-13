@@ -1517,6 +1517,29 @@ export async function refineStudioPrompt(input: { actor: PlatformActor; framewor
   return result;
 }
 
+export type StudioAlternative = { title: string; positioning: string; audience: string; coreFeatures: string[]; screens: string[]; differentiator: string; recommendedStack: string };
+
+export async function generateStudioAlternatives(input: { actor: PlatformActor; idea: string; projectType: "website" | "application"; audience?: string }) {
+  const model = await chooseBuildForgeModel();
+  const response = await invokeLLM({
+    model,
+    maxTokens: 7000,
+    messages: [
+      { role: "system", content: "Você é um diretor de produto e UX. Transforme uma ideia curta em exatamente dez propostas originais, viáveis e profissionais. Cada proposta precisa ser diferente, sem repetir recursos genéricos. Escreva em português do Brasil." },
+      { role: "user", content: `Ideia: ${input.idea.slice(0, 4000)}. Tipo desejado: ${input.projectType}. Público: ${input.audience?.slice(0, 800) || "a definir"}. Gere dez alternativas profissionais com posicionamento, recursos, telas, diferencial e stack.` },
+    ],
+    responseFormat: { type: "json_schema", json_schema: { name: "studio_professional_alternatives", strict: true, schema: { type: "object", properties: { alternatives: { type: "array", minItems: 10, maxItems: 10, items: { type: "object", properties: { title: { type: "string" }, positioning: { type: "string" }, audience: { type: "string" }, coreFeatures: { type: "array", minItems: 4, maxItems: 7, items: { type: "string" } }, screens: { type: "array", minItems: 4, maxItems: 7, items: { type: "string" } }, differentiator: { type: "string" }, recommendedStack: { type: "string" } }, required: ["title", "positioning", "audience", "coreFeatures", "screens", "differentiator", "recommendedStack"], additionalProperties: false } } }, required: ["alternatives"], additionalProperties: false } } },
+  });
+  const content = response.choices[0]?.message.content;
+  if (typeof content !== "string") throw new Error("A IA não retornou alternativas utilizáveis.");
+  let parsed: { alternatives: StudioAlternative[] };
+  try { parsed = JSON.parse(content) as { alternatives: StudioAlternative[] }; } catch { throw new Error("A IA retornou alternativas em formato inválido."); }
+  const alternatives = parsed.alternatives.slice(0, 10).map((item) => ({ title: item.title.slice(0, 120), positioning: item.positioning.slice(0, 500), audience: item.audience.slice(0, 300), coreFeatures: item.coreFeatures.slice(0, 7).map((feature) => feature.slice(0, 200)), screens: item.screens.slice(0, 7).map((screen) => screen.slice(0, 160)), differentiator: item.differentiator.slice(0, 500), recommendedStack: item.recommendedStack.slice(0, 160) }));
+  if (alternatives.length !== 10) throw new Error("A IA precisa retornar exatamente dez alternativas.");
+  await addAuditLog({ actorId: input.actor.id, action: "ai.studio_alternatives_generated", entityType: "studio_idea", metadata: { projectType: input.projectType, alternatives: alternatives.length, model } });
+  return { alternatives, model };
+}
+
 export async function generateStarterApp(input: { actor: PlatformActor; name: string; framework: "android" | "flutter" | "react_native"; prompt: string }) {
   const model = await chooseBuildForgeModel();
   const response = await invokeLLM({
