@@ -10,7 +10,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerWorkerApi } from "../worker-api";
 import { registerBuildStream } from "../build-stream";
-import { executeBuildSchedule } from "../buildforge-db";
+import { executeBuildSchedule, getStudioPreviewByToken } from "../buildforge-db";
 import { sdk } from "./sdk";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -42,6 +42,21 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerWorkerApi(app);
   registerBuildStream(app);
+  app.get("/studio/preview/:token", async (req, res) => {
+    try {
+      const preview = await getStudioPreviewByToken(req.params.token);
+      if (!preview) return res.status(404).send("Prévia não encontrada.");
+      const index = preview.files.find((file) => file.filePath.toLowerCase() === "index.html")?.content;
+      const styles = preview.files.filter((file) => /\.css$/i.test(file.filePath)).map((file) => file.content).join("\n");
+      const main = preview.files.find((file) => /(?:main|app)\.(?:t|j)sx?$/i.test(file.filePath))?.content ?? "";
+      const extractedBody = main.match(/innerHTML\s*=\s*`([\s\S]*?)`/)?.[1] ?? `<main><h1>${preview.project.name.replace(/[<>]/g, "")}</h1><p>Esta prévia será atualizada quando o Studio gerar uma tela compatível com o navegador.</p></main>`;
+      const html = (index?.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "").replace("</head>", `<style>${styles}</style></head>`).replace(/<div\s+id=["']app["']\s*><\/div>/i, `<div id="app">${extractedBody}</div>`)) ?? `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${styles}</style></head><body>${extractedBody}</body></html>`;
+      res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; font-src https: data:; base-uri 'none'; form-action 'none'");
+      return res.type("html").send(html);
+    } catch {
+      return res.status(500).send("Não foi possível gerar a prévia temporária.");
+    }
+  });
   app.post("/api/scheduled/build", async (req, res) => {
     try {
       const user = await sdk.authenticateRequest(req);

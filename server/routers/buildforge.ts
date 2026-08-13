@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   appendWorkerLog,
   analyzeBuildWithAi,
+  applyStudioChatEdit,
   claimBuildForWorker,
   completeWorkerBuild,
   createWebhook,
@@ -501,6 +502,10 @@ export const buildforgeRouter = router({
     }),
     importGithub: adminProcedure.input(z.object({ projectId: z.number().int().positive(), repository: z.string().trim().min(3).max(320), branch: z.string().trim().max(180).optional() })).mutation(async ({ ctx, input }) => {
       try { return await importStudioGithubRepository({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    chatEdit: adminProcedure.input(z.object({ projectId: z.number().int().positive(), message: z.string().trim().min(3).max(6000), preferredModel: z.string().trim().max(160).optional() })).mutation(async ({ ctx, input }) => {
+      try { return await applyStudioChatEdit({ actor: actorFromUser(ctx.user), ...input }); }
       catch (error) { throw toTrpcError(error); }
     }),
     providers: adminProcedure.query(async () => listAiProviderConfigs()),
