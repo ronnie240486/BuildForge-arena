@@ -33,11 +33,13 @@ import {
   BarChart3,
   LifeBuoy,
   FileArchive,
+  Bot,
 } from "lucide-react";
 
 const nav = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
   { href: "/app/tutorial", label: "Como usar", icon: GraduationCap, adminOnly: false },
+  { href: "/app/studio", label: "Studio IA", icon: Bot, adminOnly: false },
   { href: "/app/create", label: "Criar com IA", icon: Sparkles, adminOnly: false },
   { href: "/app/templates", label: "Templates", icon: LayoutTemplate, adminOnly: false },
   { href: "/app/projects", label: "Projetos", icon: FolderGit2, adminOnly: false },
