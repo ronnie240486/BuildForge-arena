@@ -310,6 +310,77 @@ export const aiSettings = pgTable("ai_settings", {
 });
 
 /* -------------------------------------------------------------------------- */
+/*  Backups — snapshots of account config (projects, toolchain, webhooks)      */
+/* -------------------------------------------------------------------------- */
+
+export const backups = pgTable("backups", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  ownerId: uuid("owner_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  label: text("label").notNull(),
+  snapshot: jsonb("snapshot").notNull(),
+  sizeBytes: integer("size_bytes").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Scheduled builds ("Agendamentos")                                         */
+/* -------------------------------------------------------------------------- */
+
+export const scheduleFrequency = pgEnum("schedule_frequency", ["daily", "weekly", "monthly"]);
+
+export const buildSchedules = pgTable("build_schedules", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  ownerId: uuid("owner_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  target: buildTarget("target").default("apk").notNull(),
+  frequency: scheduleFrequency("frequency").default("daily").notNull(),
+  active: boolean("active").default(true).notNull(),
+  lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+  nextRunAt: timestamp("next_run_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Support tickets                                                           */
+/* -------------------------------------------------------------------------- */
+
+export const ticketStatus = pgEnum("ticket_status", ["open", "answered", "closed"]);
+
+export const supportTickets = pgTable("support_tickets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  ownerId: uuid("owner_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  subject: text("subject").notNull(),
+  message: text("message").notNull(),
+  status: ticketStatus("status").default("open").notNull(),
+  reply: text("reply"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Public release links — temporary shareable download URLs for artifacts    */
+/* -------------------------------------------------------------------------- */
+
+export const releaseLinks = pgTable("release_links", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  artifactId: uuid("artifact_id")
+    .notNull()
+    .references(() => artifacts.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  channel: text("channel").default("direct").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+});
+
+/* -------------------------------------------------------------------------- */
 /*  Shared JSON shapes                                                         */
 /* -------------------------------------------------------------------------- */
 

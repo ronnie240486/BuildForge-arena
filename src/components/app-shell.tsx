@@ -24,19 +24,37 @@ import {
   X,
   Layers,
   Search,
+  LayoutTemplate,
+  Archive,
+  ShieldCheck,
+  Rocket,
+  Users,
+  CalendarClock,
+  BarChart3,
+  LifeBuoy,
+  FileArchive,
 } from "lucide-react";
 
 const nav = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
   { href: "/app/tutorial", label: "Como usar", icon: GraduationCap, adminOnly: false },
   { href: "/app/create", label: "Criar com IA", icon: Sparkles, adminOnly: false },
+  { href: "/app/templates", label: "Templates", icon: LayoutTemplate, adminOnly: false },
   { href: "/app/projects", label: "Projetos", icon: FolderGit2, adminOnly: false },
   { href: "/app/builds", label: "Builds", icon: Hammer, adminOnly: false },
+  { href: "/app/schedules", label: "Agendamentos", icon: CalendarClock, adminOnly: false },
+  { href: "/app/artifacts", label: "Artefatos", icon: FileArchive, adminOnly: false },
+  { href: "/app/releases", label: "Releases", icon: Rocket, adminOnly: false },
   { href: "/app/workers", label: "Workers", icon: Server, adminOnly: false },
   { href: "/app/ai", label: "IA Assistant", icon: Sparkles, adminOnly: false },
+  { href: "/app/organizations", label: "Organizações", icon: Users, adminOnly: false },
+  { href: "/app/reports", label: "Relatórios", icon: BarChart3, adminOnly: false },
+  { href: "/app/support", label: "Suporte", icon: LifeBuoy, adminOnly: false },
   // Recursos administrativos — só o dono/admin vê:
   { href: "/app/toolchain", label: "Instalador", icon: Wrench, adminOnly: true },
   { href: "/app/webhooks", label: "Webhooks", icon: Webhook, adminOnly: true },
+  { href: "/app/backups", label: "Backups", icon: Archive, adminOnly: true },
+  { href: "/app/admin", label: "Administração", icon: ShieldCheck, adminOnly: true },
   { href: "/app/settings", label: "Configurações", icon: Settings, adminOnly: false },
 ];
 

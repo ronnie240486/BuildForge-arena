@@ -14,6 +14,8 @@ DO $$ BEGIN CREATE TYPE build_status AS ENUM ('queued','running','success','fail
 DO $$ BEGIN CREATE TYPE tool_state AS ENUM ('installed','missing','required','optional'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE insight_severity AS ENUM ('info','warning','error'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE notif_type AS ENUM ('build','system','ai','security'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE schedule_frequency AS ENUM ('daily','weekly','monthly'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE ticket_status AS ENUM ('open','answered','closed'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS "users" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -186,6 +188,47 @@ CREATE TABLE IF NOT EXISTS "ai_settings" (
   "model" text,
   "enabled" boolean NOT NULL DEFAULT false,
   "updated_at" timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "backups" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  "owner_id" uuid NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+  "label" text NOT NULL,
+  "snapshot" jsonb NOT NULL,
+  "size_bytes" integer NOT NULL DEFAULT 0,
+  "created_at" timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "build_schedules" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  "owner_id" uuid NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+  "project_id" uuid NOT NULL REFERENCES "projects"("id") ON DELETE CASCADE,
+  "target" build_target NOT NULL DEFAULT 'apk',
+  "frequency" schedule_frequency NOT NULL DEFAULT 'daily',
+  "active" boolean NOT NULL DEFAULT true,
+  "last_run_at" timestamptz,
+  "next_run_at" timestamptz NOT NULL,
+  "created_at" timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "support_tickets" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  "owner_id" uuid NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+  "subject" text NOT NULL,
+  "message" text NOT NULL,
+  "status" ticket_status NOT NULL DEFAULT 'open',
+  "reply" text,
+  "created_at" timestamptz NOT NULL DEFAULT now(),
+  "updated_at" timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "release_links" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  "artifact_id" uuid NOT NULL REFERENCES "artifacts"("id") ON DELETE CASCADE,
+  "token" text NOT NULL UNIQUE,
+  "channel" text NOT NULL DEFAULT 'direct',
+  "created_at" timestamptz NOT NULL DEFAULT now(),
+  "expires_at" timestamptz
 );
 
 CREATE TABLE IF NOT EXISTS "project_members" (
