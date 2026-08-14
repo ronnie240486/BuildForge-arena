@@ -495,6 +495,20 @@ export function materialStudioFileChanges(existingFiles: Array<{ filePath: strin
   });
 }
 
+type StudioEditPayload = { reply: string; files: Array<{ path: string; language: string; content: string }> };
+
+export function parseStudioEditPayload(value: unknown): StudioEditPayload | null {
+  const raw = typeof value === "string" ? value.trim() : Array.isArray(value) ? value.map((part) => typeof part === "object" && part && "text" in part && typeof part.text === "string" ? part.text : "").join("").trim() : "";
+  const candidates = [raw, raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)?.[1] ?? "", raw.match(/(\{[\s\S]*\})/)?.[1] ?? ""];
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate) as Partial<StudioEditPayload>;
+      if (typeof parsed.reply === "string" && Array.isArray(parsed.files) && parsed.files.every((file) => file && typeof file.path === "string" && typeof file.language === "string" && typeof file.content === "string")) return parsed as StudioEditPayload;
+    } catch { /* Tenta a próxima representação. */ }
+  }
+  return null;
+}
+
 export async function applyStudioChatEdit(input: { actor: PlatformActor; projectId: number; message: string; preferredModel?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
@@ -511,18 +525,29 @@ export async function applyStudioChatEdit(input: { actor: PlatformActor; project
     ],
     response_format: { type: "json_schema", json_schema: { name: "studio_file_edit", strict: true, schema: { type: "object", properties: { reply: { type: "string" }, files: { type: "array", maxItems: 5, items: { type: "object", properties: { path: { type: "string" }, language: { type: "string" }, content: { type: "string" } }, required: ["path", "language", "content"], additionalProperties: false } } }, required: ["reply", "files"], additionalProperties: false } } },
   });
-  const raw = response.choices[0]?.message.content;
-  const content = typeof raw === "string" ? raw : Array.isArray(raw) ? raw.map((part) => "text" in part && typeof part.text === "string" ? part.text : "").join("") : "";
-  let edit: { reply: string; files: Array<{ path: string; language: string; content: string }> };
-  try { edit = JSON.parse(content); } catch { throw new Error("A IA respondeu em um formato inválido. Tente novamente."); }
-  let safeFiles = edit.files.filter((file) => isSafeStudioFilePath(file.path) && file.content.length <= 24000).map((file) => ({ filePath: file.path, language: file.language.slice(0, 48) || "text", content: file.content }));
+  let edit = parseStudioEditPayload(response.choices[0]?.message.content);
+  if (!edit) {
+    const retry = await invokeLLM({
+      model,
+      maxTokens: 7000,
+      messages: [
+        { role: "system", content: "A resposta anterior não pôde ser interpretada. Refaça a edição e responda somente JSON válido, sem Markdown, no formato {reply:string,files:[{path:string,language:string,content:string}]}. Inclua apenas arquivos completos realmente alterados." },
+        { role: "user", content: `PROJETO: ${project.name} (${project.projectType}, ${project.framework})\n\nARQUIVOS ATUAIS:\n${context}\n\nPEDIDO DO USUÁRIO:\n${input.message.slice(0, 6000)}` },
+      ],
+      response_format: { type: "json_schema", json_schema: { name: "studio_file_edit_recovery", strict: true, schema: { type: "object", properties: { reply: { type: "string" }, files: { type: "array", maxItems: 5, items: { type: "object", properties: { path: { type: "string" }, language: { type: "string" }, content: { type: "string" } }, required: ["path", "language", "content"], additionalProperties: false } } }, required: ["reply", "files"], additionalProperties: false } } },
+    });
+    edit = parseStudioEditPayload(retry.choices[0]?.message.content);
+  }
   const previewPreference = studioPreviewPreferenceFile(input.message, files);
+  if (!edit && !previewPreference) throw new Error("Não foi possível interpretar a resposta do gerador após uma nova tentativa. Seu projeto foi preservado; tente novamente com um pedido mais objetivo.");
+  const recoveredEdit = edit ?? { reply: "Apliquei a configuração visual solicitada na prévia. Tente novamente caso queira alterar outros arquivos do aplicativo.", files: [] };
+  let safeFiles = recoveredEdit.files.filter((file) => isSafeStudioFilePath(file.path) && file.content.length <= 24000).map((file) => ({ filePath: file.path, language: file.language.slice(0, 48) || "text", content: file.content }));
   if (previewPreference) safeFiles = [...safeFiles.filter((file) => file.filePath !== previewPreference.filePath), previewPreference];
   safeFiles = materialStudioFileChanges(files, safeFiles);
   if (safeFiles.length === 0) throw new Error("O Studio não conseguiu aplicar uma alteração real aos arquivos. Reformule o pedido com mais detalhes; nenhuma mudança foi confirmada.");
   await db.insert(studioMessages).values({ studioProjectId: project.id, authorId: input.actor.id, role: "user", content: input.message.slice(0, 6000) });
   for (const file of safeFiles) await db.insert(studioFiles).values({ studioProjectId: project.id, ...file }).onDuplicateKeyUpdate({ set: { language: file.language, content: file.content } });
-  const reply = edit.reply.slice(0, 2000) || "Atualizei os arquivos solicitados.";
+  const reply = recoveredEdit.reply.slice(0, 2000) || "Atualizei os arquivos solicitados.";
   await db.insert(studioMessages).values({ studioProjectId: project.id, authorId: input.actor.id, role: "assistant", content: reply, changedFiles: safeFiles.map((file) => file.filePath) });
   const sync = await syncStudioFilesToGithub(db, project, safeFiles);
   await addAuditLog({ actorId: input.actor.id, action: "studio.chat_edit", entityType: "studio_project", entityId: String(project.id), metadata: { model, files: safeFiles.map((file) => file.filePath), githubSync: sync.status, githubPushed: sync.pushed } });

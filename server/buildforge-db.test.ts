@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { strToU8, zipSync } from "fflate";
-import { canManageOwnedResource, detectZipFramework, inferFramework, isPlatformAdmin, materialStudioFileChanges, studioPreviewPreferenceFile, studioProductStandard, studioStarterFiles } from "./buildforge-db";
+import { canManageOwnedResource, detectZipFramework, inferFramework, isPlatformAdmin, materialStudioFileChanges, parseStudioEditPayload, studioPreviewPreferenceFile, studioProductStandard, studioStarterFiles } from "./buildforge-db";
 
 describe("BuildForge domain rules", () => {
   it("identifica as stacks conhecidas a partir de referências de projeto", () => {
@@ -63,6 +63,13 @@ describe("BuildForge domain rules", () => {
     const preference = studioPreviewPreferenceFile("crie matchmaking com ELO, torneios e modo espectador", []);
 
     expect(preference?.content).toContain('"mode": "competitive"');
+  });
+
+  it("recupera uma resposta válida mesmo quando vier dentro de bloco de código", () => {
+    const edit = parseStudioEditPayload('```json\n{"reply":"Pronto","files":[{"path":"App.tsx","language":"typescript","content":"export default 1"}]}\n```');
+
+    expect(edit?.reply).toBe("Pronto");
+    expect(edit?.files[0]?.path).toBe("App.tsx");
   });
 
   it("não confirma arquivos idênticos como alterações do Studio", () => {
