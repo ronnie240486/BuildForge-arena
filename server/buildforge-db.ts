@@ -462,6 +462,17 @@ export async function syncStudioProjectToGithub(input: { actor: PlatformActor; p
   return { ...sync, repository: project.githubRepository, branch: project.githubBranch };
 }
 
+export function studioPreviewPreferenceFile(message: string, files: Array<{ filePath: string; content: string }>) {
+  const source = message.toLowerCase();
+  const existing = files.find((file) => file.filePath === "studio-preview.json")?.content;
+  let current: { checkers?: { pieceColor?: string; theme?: string } } = {};
+  try { current = existing ? JSON.parse(existing) as typeof current : {}; } catch { current = {}; }
+  const pieceColor = /rosa|pink/.test(source) ? "pink" : /amarel|yellow/.test(source) ? "yellow" : /vermelh|red/.test(source) ? "red" : /verde|green/.test(source) ? "green" : /azul|blue/.test(source) ? "blue" : current.checkers?.pieceColor;
+  const theme = /medieval|reino|castelo/.test(source) ? "medieval" : current.checkers?.theme;
+  if (!pieceColor && !theme) return null;
+  return { filePath: "studio-preview.json", language: "json", content: JSON.stringify({ checkers: { pieceColor: pieceColor ?? "blue", theme: theme ?? "classic" } }, null, 2) };
+}
+
 export async function applyStudioChatEdit(input: { actor: PlatformActor; projectId: number; message: string; preferredModel?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
@@ -482,7 +493,9 @@ export async function applyStudioChatEdit(input: { actor: PlatformActor; project
   const content = typeof raw === "string" ? raw : Array.isArray(raw) ? raw.map((part) => "text" in part && typeof part.text === "string" ? part.text : "").join("") : "";
   let edit: { reply: string; files: Array<{ path: string; language: string; content: string }> };
   try { edit = JSON.parse(content); } catch { throw new Error("A IA respondeu em um formato inválido. Tente novamente."); }
-  const safeFiles = edit.files.filter((file) => isSafeStudioFilePath(file.path) && file.content.length <= 24000).map((file) => ({ filePath: file.path, language: file.language.slice(0, 48) || "text", content: file.content }));
+  let safeFiles = edit.files.filter((file) => isSafeStudioFilePath(file.path) && file.content.length <= 24000).map((file) => ({ filePath: file.path, language: file.language.slice(0, 48) || "text", content: file.content }));
+  const previewPreference = studioPreviewPreferenceFile(input.message, files);
+  if (previewPreference) safeFiles = [...safeFiles.filter((file) => file.filePath !== previewPreference.filePath), previewPreference];
   await db.insert(studioMessages).values({ studioProjectId: project.id, authorId: input.actor.id, role: "user", content: input.message.slice(0, 6000) });
   for (const file of safeFiles) await db.insert(studioFiles).values({ studioProjectId: project.id, ...file }).onDuplicateKeyUpdate({ set: { language: file.language, content: file.content } });
   const reply = edit.reply.slice(0, 2000) || "Atualizei os arquivos solicitados.";

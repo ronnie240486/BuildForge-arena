@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { strToU8, zipSync } from "fflate";
-import { canManageOwnedResource, detectZipFramework, inferFramework, isPlatformAdmin, studioStarterFiles } from "./buildforge-db";
+import { canManageOwnedResource, detectZipFramework, inferFramework, isPlatformAdmin, studioPreviewPreferenceFile, studioStarterFiles } from "./buildforge-db";
 
 describe("BuildForge domain rules", () => {
   it("identifica as stacks conhecidas a partir de referências de projeto", () => {
@@ -41,5 +41,13 @@ describe("BuildForge domain rules", () => {
     expect(website.find((file) => file.filePath === "index.html")?.content).toContain("Projeto Studio");
     expect(application.map((file) => file.filePath)).toEqual(expect.arrayContaining(["README.md", "package.json", "App.tsx", "app.json"]));
     expect(application.find((file) => file.filePath === "App.tsx")?.content).toContain("SafeAreaView");
+  });
+
+  it("persiste a preferência visual do tabuleiro a partir de pedidos do chat", () => {
+    const preference = studioPreviewPreferenceFile("Crie um tabuleiro medieval e mude as peças azuis para rosa", []);
+
+    expect(preference?.filePath).toBe("studio-preview.json");
+    expect(preference?.content).toContain('"pieceColor": "pink"');
+    expect(preference?.content).toContain('"theme": "medieval"');
   });
 });

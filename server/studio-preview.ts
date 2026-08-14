@@ -9,17 +9,28 @@ function isCheckersProject(preview: StudioPreview) {
   return /\b(damas|checkers)\b/i.test(`${preview.project.name} ${preview.project.framework} ${preview.files.map((file) => file.content.slice(0, 300)).join(" ")}`);
 }
 
-type CheckersTheme = { label: string; title: string; start: string; end: string };
+type CheckersTheme = { label: string; title: string; start: string; end: string; medieval: boolean };
 
 function detectCheckersTheme(preview: StudioPreview): CheckersTheme {
+  const configFile = preview.files.find((file) => file.filePath === "studio-preview.json")?.content;
+  let configuredColor = "";
+  let configuredTheme = "";
+  try { const config = JSON.parse(configFile ?? "{}") as { checkers?: { pieceColor?: string; theme?: string } }; configuredColor = String(config.checkers?.pieceColor ?? "").toLowerCase(); configuredTheme = String(config.checkers?.theme ?? "").toLowerCase(); } catch { configuredColor = ""; }
   const source = preview.files.map((file) => file.content).join("\n").toLowerCase();
-  if (/amarel|#ffd60a|#facc15|#eab308/.test(source)) return { label: "amarelas", title: "Amarelas", start: "#fde047", end: "#ca8a04" };
-  if (/vermelh|#ef4444|#dc2626|#f43f5e/.test(source)) return { label: "vermelhas", title: "Vermelhas", start: "#fb7185", end: "#b91c1c" };
-  if (/verde|#22c55e|#16a34a/.test(source)) return { label: "verdes", title: "Verdes", start: "#4ade80", end: "#15803d" };
-  return { label: "azuis", title: "Azuis", start: "#38bdf8", end: "#1d4ed8" };
+  const medieval = configuredTheme === "medieval" || /medieval|reino|castelo/.test(source);
+  const theme = (label: string, title: string, start: string, end: string): CheckersTheme => ({ label, title, start, end, medieval });
+  if (configuredColor === "pink") return theme("rosas", "Rosas", "#f9a8d4", "#be185d");
+  if (configuredColor === "yellow") return theme("amarelas", "Amarelas", "#fde047", "#ca8a04");
+  if (configuredColor === "red") return theme("vermelhas", "Vermelhas", "#fb7185", "#b91c1c");
+  if (configuredColor === "green") return theme("verdes", "Verdes", "#4ade80", "#15803d");
+  if (/rosa|pink|#f9a8d4|#be185d/.test(source)) return theme("rosas", "Rosas", "#f9a8d4", "#be185d");
+  if (/amarel|#ffd60a|#facc15|#eab308/.test(source)) return theme("amarelas", "Amarelas", "#fde047", "#ca8a04");
+  if (/vermelh|#ef4444|#dc2626|#f43f5e/.test(source)) return theme("vermelhas", "Vermelhas", "#fb7185", "#b91c1c");
+  if (/verde|#22c55e|#16a34a/.test(source)) return theme("verdes", "Verdes", "#4ade80", "#15803d");
+  return theme("azuis", "Azuis", "#38bdf8", "#1d4ed8");
 }
 
-export function createCheckersPreviewDocument(name: string, theme: CheckersTheme = { label: "azuis", title: "Azuis", start: "#38bdf8", end: "#1d4ed8" }) {
+export function createCheckersPreviewDocument(name: string, theme: CheckersTheme = { label: "azuis", title: "Azuis", start: "#38bdf8", end: "#1d4ed8", medieval: false }) {
   const safeName = escapeHtml(name);
   const document = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${safeName}</title><style>
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 0,#352466,#090d1c 52%,#050814);color:#f8fafc;font-family:Inter,ui-sans-serif,system-ui,sans-serif}.game{width:min(960px,100%);margin:0 auto;padding:28px 18px 44px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:22px}.eyebrow{margin:0 0 5px;color:#c4b5fd;font-size:11px;font-weight:800;letter-spacing:.16em}.top h1{margin:0;font-size:clamp(24px,4vw,38px);letter-spacing:-.04em}.status{border:1px solid rgba(167,139,250,.35);border-radius:999px;background:rgba(124,58,237,.16);padding:9px 13px;font-size:12px;font-weight:700;color:#ede9fe}.layout{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:22px}.board-wrap{border:1px solid rgba(255,255,255,.12);border-radius:26px;background:rgba(15,23,42,.72);padding:16px;box-shadow:0 24px 60px rgba(0,0,0,.3)}.board{aspect-ratio:1;display:grid;grid-template-columns:repeat(8,1fr);overflow:hidden;border-radius:14px;border:6px solid #291c38;box-shadow:0 0 0 1px rgba(255,255,255,.15)}.cell{position:relative;border:0;padding:0;cursor:pointer}.cell.light{background:#e7d7be}.cell.dark{background:#7c4b35}.cell.selected{outline:4px solid #fbbf24;outline-offset:-4px;z-index:1}.cell.move:after{content:"";position:absolute;inset:37%;border-radius:50%;background:rgba(254,240,138,.9)}.piece{position:absolute;inset:14%;border-radius:50%;border:3px solid rgba(255,255,255,.55);box-shadow:inset 0 5px 8px rgba(255,255,255,.18),inset 0 -7px 10px rgba(0,0,0,.25),0 4px 7px rgba(0,0,0,.35)}.piece.blue{background:linear-gradient(145deg,#38bdf8,#1d4ed8)}.piece.violet{background:linear-gradient(145deg,#c084fc,#6d28d9)}.piece.king:before{content:"♛";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:clamp(14px,3vw,25px);text-shadow:0 1px 2px #111}.side{display:flex;flex-direction:column;gap:12px}.card{border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:16px;background:rgba(15,23,42,.74)}.card h2{margin:0 0 8px;font-size:15px}.card p{margin:0;color:#cbd5e1;font-size:13px;line-height:1.55}.score{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px}.score div{border-radius:12px;padding:10px;background:#111a31;font-size:11px;color:#94a3b8}.score strong{display:block;color:white;font-size:22px;margin-top:3px}.reset{border:0;border-radius:12px;padding:12px;background:#7c3aed;color:white;font-weight:800;cursor:pointer}.reset:hover{background:#8b5cf6}.note{margin:15px 2px 0;color:#94a3b8;font-size:12px;line-height:1.55}@media(max-width:720px){.game{padding:18px 12px 32px}.layout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.side .card:last-of-type{grid-column:span 2}.top{align-items:flex-start}.status{white-space:nowrap}}@media(max-width:400px){.side{grid-template-columns:1fr}.side .card:last-of-type{grid-column:auto}}
@@ -32,7 +43,12 @@ const board=document.getElementById('board'),turnNode=document.getElementById('t
     .replace("Azuis<strong", `${theme.title}<strong`)
     .replace("As azuis começam", `As ${theme.label} começam`)
     .replace("const board=", `const primaryLabel=${JSON.stringify(theme.label)};const board=`)
-    .replace("?'azuis':'roxas'", "?primaryLabel:'roxas'");
+    .replace("?'azuis':'roxas'", "?primaryLabel:'roxas'")
+    .replace("BUILD FORGE STUDIO · JOGO INTERATIVO", theme.medieval ? "BUILD FORGE STUDIO · REINO MEDIEVAL" : "BUILD FORGE STUDIO · JOGO INTERATIVO")
+    .replace("background:radial-gradient(circle at 15% 0,#352466,#090d1c 52%,#050814)", theme.medieval ? "background:radial-gradient(circle at 15% 0,#6b3c18,#201107 52%,#090604)" : "background:radial-gradient(circle at 15% 0,#352466,#090d1c 52%,#050814)")
+    .replace("border:6px solid #291c38", theme.medieval ? "border:6px solid #8c5a24" : "border:6px solid #291c38")
+    .replace(".cell.light{background:#e7d7be}", theme.medieval ? ".cell.light{background:#d8bb80}" : ".cell.light{background:#e7d7be}")
+    .replace(".cell.dark{background:#7c4b35}", theme.medieval ? ".cell.dark{background:#623617}" : ".cell.dark{background:#7c4b35}");
 }
 
 export function createStudioPreviewDocument(preview: StudioPreview) {

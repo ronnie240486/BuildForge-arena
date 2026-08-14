@@ -150,3 +150,4 @@
 - [x] Criar cobertura automatizada específica para autorização da configuração GitHub por projeto e das APIs de organizações e membros.
 - [x] Corrigir a geração de jogo de damas no Studio para produzir uma prévia interativa, sem tela em branco, e permitir refinamentos pelo chat.
 - [x] Fazer a prévia de damas refletir as alterações visuais solicitadas e aplicadas pelo chat, incluindo a cor das peças.
+- [x] Corrigir o erro de alteração de cor pelo chat e assegurar que novos jogos de damas, incluindo o tema medieval, recebam prévia própria e funcional.

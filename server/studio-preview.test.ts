@@ -17,6 +17,14 @@ describe("prévia do Studio", () => {
     expect(html).toContain("#fde047");
   });
 
+  it("prioriza a preferência explícita de prévia sobre referências antigas no código", () => {
+    const html = createStudioPreviewDocument({ project: { name: "Damas Medieval", projectType: "application", framework: "React Native" }, files: [{ filePath: "App.tsx", language: "typescript", content: "Peças amarelas em uma versão anterior" }, { filePath: "studio-preview.json", language: "json", content: '{"checkers":{"pieceColor":"pink","theme":"medieval"}}' }] });
+
+    expect(html).toContain("peças rosas");
+    expect(html).toContain("#f9a8d4");
+    expect(html).toContain("REINO MEDIEVAL");
+  });
+
   it("mantém a prévia HTML comum para projetos que não são jogos de damas", () => {
     const html = createStudioPreviewDocument({ project: { name: "Agenda", projectType: "website", framework: "React" }, files: [{ filePath: "index.html", language: "html", content: "<html><head></head><body><div id=\"app\"></div></body></html>" }, { filePath: "src/main.ts", language: "typescript", content: "root.innerHTML = `<main>Agenda</main>`" }] });
 
