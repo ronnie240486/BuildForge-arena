@@ -165,7 +165,7 @@
 - [x] Fazer pedidos simples de agenda eletrônica gerarem aplicativo profissional completo, com calendário, compromissos, lembretes, categorias, busca, estatísticas e configurações.
 - [x] Corrigir o failed fetch no formulário Gerar aplicativo e abrir automaticamente a prévia do novo projeto criado.
 - [x] Gerar Agenda profissional com pastas de telas, componentes, serviços, tema, recursos `res`, imagens e navegação funcional entre páginas na prévia.
-- [ ] Evoluir a Agenda gerada pelo Studio para produto comercial, com onboarding, dados persistentes, planos, configurações e identidade visual editável pelo chat.
+- [x] Evoluir a Agenda gerada pelo Studio para produto comercial, com onboarding, dados persistentes, planos, configurações e identidade visual editável pelo chat.
 - [x] Aplicar o padrão comercial universal a todos os projetos do Studio, com arquitetura modular, recursos visuais, telas, navegação, onboarding e prévia personalizável.
 - [ ] Validar manualmente em desktop e mobile o fluxo completo de Organizações: abrir pelo menu, listar membros, adicionar ou editar papel, remover membro e confirmar feedbacks ou erros visíveis.
 - [ ] Validar manualmente a Central de Notificações pelo menu em desktop e mobile, comprovando carregamento, estado vazio, estado de erro com tentar novamente e recuperação.
