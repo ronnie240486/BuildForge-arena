@@ -46,6 +46,10 @@ export function isPlatformAdmin(actor: PlatformActor) {
   return actor.role === "admin";
 }
 
+export function canManageOwnedResource(actor: PlatformActor, ownerId: number) {
+  return isPlatformAdmin(actor) || actor.id === ownerId;
+}
+
 export const buildCleanupStatuses = ["succeeded", "failed", "cancelled"] as const;
 
 export function isBuildCleanupEligible(status: string) {
@@ -211,7 +215,7 @@ export async function saveGithubIntegration(input: {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
   const [project] = await db.select().from(projects).where(eq(projects.id, input.projectId)).limit(1);
-  if (!project || (!isPlatformAdmin(input.actor) && project.ownerId !== input.actor.id)) throw new Error("Projeto não encontrado ou não autorizado.");
+  if (!project || !canManageOwnedResource(input.actor, project.ownerId)) throw new Error("Projeto não encontrado ou não autorizado.");
   const repository = input.repository.trim().replace(/^https:\/\/github\.com\//i, "").replace(/\.git$/i, "");
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) throw new Error("Informe o repositório no formato organizacao/repositorio.");
   const branch = input.branch.trim().slice(0, 180) || "main";

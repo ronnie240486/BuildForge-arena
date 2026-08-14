@@ -113,7 +113,7 @@
 - [x] Ampliar Relatórios com visão por cliente, projeto, status de build e período usando dados reais.
 - [x] Implementar integração ampliada com GitHub, QR Code para releases e relatórios operacionais por cliente.
 - [x] Criar a configuração de repositório, branch e webhook do GitHub por projeto, sem expor o segredo de assinatura.
-- [ ] Expor no painel a configuração GitHub por projeto, protegida por administração e com teste de autorização.
+- [x] Expor no painel a configuração GitHub por projeto, protegida por proprietário ou administração e com teste de autorização.
 - [x] Criar a interface administrativa de marca branca para nome, cores e identidade visual da plataforma.
 - [x] Implementar organizações, equipes, suporte por tickets e marca branca.
 - [x] Criar a interface administrativa de organizações e equipes sobre as APIs já publicadas.
@@ -147,4 +147,4 @@
 - [x] Sincronizar automaticamente com GitHub os arquivos criados ou alterados pelo Studio quando houver token configurado.
 - [ ] Auditar o estado local e remoto do repositório GitHub BuildForge e enviar todas as alterações pendentes confirmadas.
 - [x] Adicionar filtro por cliente aos Relatórios com dados reais e validação automatizada.
-- [x] Criar cobertura automatizada específica para autorização da configuração GitHub por projeto e das APIs de organizações, equipes e membros.
+- [x] Criar cobertura automatizada específica para autorização da configuração GitHub por projeto e das APIs de organizações e membros.

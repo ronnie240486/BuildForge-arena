@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { strToU8, zipSync } from "fflate";
-import { detectZipFramework, inferFramework, isPlatformAdmin, studioStarterFiles } from "./buildforge-db";
+import { canManageOwnedResource, detectZipFramework, inferFramework, isPlatformAdmin, studioStarterFiles } from "./buildforge-db";
 
 describe("BuildForge domain rules", () => {
   it("identifica as stacks conhecidas a partir de referências de projeto", () => {
@@ -15,6 +15,12 @@ describe("BuildForge domain rules", () => {
     expect(isPlatformAdmin({ id: 1, role: "admin" })).toBe(true);
     expect(isPlatformAdmin({ id: 2, role: "member" })).toBe(false);
     expect(isPlatformAdmin({ id: 3, role: "user" })).toBe(false);
+  });
+
+  it("permite configurar integrações de projeto somente ao proprietário ou administrador", () => {
+    expect(canManageOwnedResource({ id: 8, role: "member" }, 8)).toBe(true);
+    expect(canManageOwnedResource({ id: 8, role: "member" }, 9)).toBe(false);
+    expect(canManageOwnedResource({ id: 1, role: "admin" }, 9)).toBe(true);
   });
 
   it("detecta Android, Flutter e React Native por manifestos compactados", () => {
