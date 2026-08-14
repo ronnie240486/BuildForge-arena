@@ -54,8 +54,11 @@ describe("prévia do Studio", () => {
   it("renderiza uma Agenda editável em vez do fallback móvel genérico", () => {
     const html = createStudioPreviewDocument({ project: { name: "Agenda Estudo+ — Planejamento e Memória", projectType: "application", framework: "react_native" }, files: [{ filePath: "App.tsx", language: "typescript", content: "Aplicativo de agenda com lembretes e planejamento." }] });
 
-    expect(html).toContain("Seu dia, organizado");
+    expect(html).toContain("Seu tempo, sob controle");
     expect(html).toContain("Novo compromisso");
+    expect(html).toContain("Calendário mensal");
+    expect(html).toContain("Insights de produtividade");
+    expect(html).toContain("Configurações");
     expect(html).not.toContain("Esta prévia será atualizada quando o Studio gerar uma tela compatível");
   });
 
