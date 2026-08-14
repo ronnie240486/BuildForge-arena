@@ -378,6 +378,17 @@ export async function createStudioProject(input: { actor: PlatformActor; name: s
   return { id: studioProjectId, previewToken, files: files.map((file) => file.filePath) };
 }
 
+export async function deleteStudioProject(input: { actor: PlatformActor; projectId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const project = await assertStudioProjectAccess(db, input.actor, input.projectId);
+  await db.delete(studioMessages).where(eq(studioMessages.studioProjectId, project.id));
+  await db.delete(studioFiles).where(eq(studioFiles.studioProjectId, project.id));
+  await db.delete(studioProjects).where(eq(studioProjects.id, project.id));
+  await addAuditLog({ actorId: input.actor.id, action: "studio.project_deleted", entityType: "studio_project", entityId: String(project.id), metadata: { name: project.name, projectType: project.projectType } });
+  return { id: project.id, name: project.name };
+}
+
 export async function getStudioProjectDetail(actor: PlatformActor, projectId: number) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");

@@ -161,4 +161,5 @@
 - [x] Substituir a prévia genérica de damas por protótipos específicos de jogo, começando pelo xadrez 3D medieval solicitado no Studio.
 - [x] Corrigir o failed fetch ao criar projetos pelo Studio, incluindo agenda, com recuperação e mensagem de erro clara.
 - [x] Corrigir a resposta HTML inesperada ao abrir a Agenda no Studio e gerar uma prévia de agenda editável em vez da tela genérica.
+- [x] Adicionar exclusão confirmada de projetos diretamente no Studio, com atualização da lista e da prévia selecionada.
 - [x] Substituir erros técnicos de briefing no Studio por validação e orientação clara em português antes do envio.

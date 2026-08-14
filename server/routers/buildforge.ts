@@ -36,6 +36,7 @@ import {
   deleteBuild,
   deleteBuildSchedule,
   deleteProject,
+  deleteStudioProject,
   deleteWorker,
   deleteWebhook,
   listAuditEvents,
@@ -503,6 +504,10 @@ export const buildforgeRouter = router({
     }),
     createProject: adminProcedure.input(z.object({ name: z.string().trim().min(2).max(180), projectType: z.enum(["website", "application"]), framework: z.string().trim().min(2).max(160) })).mutation(async ({ ctx, input }) => {
       try { return await createStudioProject({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    deleteProject: adminProcedure.input(z.object({ projectId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      try { return await deleteStudioProject({ actor: actorFromUser(ctx.user), ...input }); }
       catch (error) { throw toTrpcError(error); }
     }),
     importGithub: adminProcedure.input(z.object({ projectId: z.number().int().positive(), repository: z.string().trim().min(3).max(320), branch: z.string().trim().max(180).optional() })).mutation(async ({ ctx, input }) => {
