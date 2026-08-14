@@ -332,8 +332,10 @@ function isAgendaStudioProject(name: string) {
 }
 
 function agendaApplicationStarterFiles(title: string) {
-  const appSource = `import { useMemo, useState } from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+  const appSource = `import { useEffect, useMemo, useState } from "react";
+	import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+	import { loadAppointments, loadOnboarding, saveAppointments, saveOnboarding } from "./src/services/localStore";
+	import { scheduleReminder } from "./src/services/reminders";
 
 type Appointment = { id: number; time: string; title: string; category: string; done?: boolean };
 const initialAppointments: Appointment[] = [
@@ -344,14 +346,20 @@ const initialAppointments: Appointment[] = [
 
 export default function App() {
   const [tab, setTab] = useState<"Hoje" | "Calendário" | "Insights" | "Ajustes">("Hoje");
-  const [appointments, setAppointments] = useState(initialAppointments);
-  const [query, setQuery] = useState("");
+	  const [appointments, setAppointments] = useState(initialAppointments);
+	  const [ready, setReady] = useState(false);
+	  const [onboardingDone, setOnboardingDone] = useState(false);
+	  const [query, setQuery] = useState("");
+	  useEffect(() => { Promise.all([loadAppointments(initialAppointments), loadOnboarding()]).then(([saved, onboarded]) => { setAppointments(saved); setOnboardingDone(onboarded); setReady(true); }); }, []);
+	  useEffect(() => { if (ready) void saveAppointments(appointments); }, [appointments, ready]);
   const visible = useMemo(() => appointments.filter((item) => item.title.toLowerCase().includes(query.toLowerCase())), [appointments, query]);
   const toggle = (id: number) => setAppointments((items) => items.map((item) => item.id === id ? { ...item, done: !item.done } : item));
-  const add = () => setAppointments((items) => [...items, { id: Date.now(), time: "20:00", title: "Novo compromisso", category: "Pessoal" }]);
-  const done = appointments.filter((item) => item.done).length;
+	  const add = () => { const item = { id: Date.now(), time: "20:00", title: "Novo compromisso", category: "Pessoal" }; setAppointments((items) => [...items, item]); void scheduleReminder(item.title, "Seu compromisso começa em breve", new Date(Date.now() + 60 * 60 * 1000)); };
+	  const done = appointments.filter((item) => item.done).length;
 
-  return <SafeAreaView style={styles.page}><View style={styles.topbar}><View><Text style={styles.eyebrow}>AGENDA ELETRÔNICA</Text><Text style={styles.title}>${title}</Text></View><View style={styles.avatar}><Text style={styles.avatarText}>AE</Text></View></View>
+	  if (!ready) return <SafeAreaView style={styles.page}><View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Text style={styles.heroCopy}>Preparando sua agenda…</Text></View></SafeAreaView>;
+	  if (!onboardingDone) return <SafeAreaView style={styles.page}><View style={{ flex: 1, justifyContent: "center", padding: 26 }}><Text style={styles.eyebrow}>BEM-VINDO</Text><Text style={styles.title}>${title}</Text><Text style={styles.cardCopy}>Organize compromissos, lembretes e metas em um fluxo simples e profissional.</Text><TouchableOpacity style={styles.primaryButton} onPress={() => { setOnboardingDone(true); void saveOnboarding(true); }}><Text style={styles.primaryButtonText}>Configurar minha agenda</Text></TouchableOpacity></View></SafeAreaView>;
+	  return <SafeAreaView style={styles.page}><View style={styles.topbar}><View><Text style={styles.eyebrow}>AGENDA ELETRÔNICA</Text><Text style={styles.title}>${title}</Text></View><View style={styles.avatar}><Text style={styles.avatarText}>AE</Text></View></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       {tab === "Hoje" && <><View style={styles.week}>{["SEG 12","TER 13","QUA 14","QUI 15","SEX 16","SÁB 17","DOM 18"].map((day, index) => <View key={day} style={[styles.day, index === 2 && styles.activeDay]}><Text style={[styles.dayText, index === 2 && styles.activeDayText]}>{day.split(" ")[0]}</Text><Text style={[styles.dayNumber, index === 2 && styles.activeDayText]}>{day.split(" ")[1]}</Text></View>)}</View>
         <View style={styles.hero}><Text style={styles.heroTitle}>Seu dia, organizado.</Text><Text style={styles.heroCopy}>{done} de {appointments.length} atividades concluídas · sequência de foco: 7 dias · Lembretes ativos: 3</Text><View style={styles.progressTrack}><View style={[styles.progress, { width: appointments.length ? \`\${Math.round((done / appointments.length) * 100)}%\` : "0%" }]} /></View></View>

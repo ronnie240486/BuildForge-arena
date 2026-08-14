@@ -69,7 +69,7 @@
 - [x] Adicionar cadastro e login de clientes por e-mail e senha, com hash seguro de senha, sessão persistente e validação de dados.
 - [x] Separar o acesso comercial público do painel protegido, redirecionando clientes autenticados ao workspace adequado.
 - [ ] Validar os fluxos de cadastro, login, logout e bloqueio de páginas privadas no navegador.
-- [ ] Salvar checkpoint da versão com landing comercial e portal de clientes.
+- [x] Salvar checkpoint da versão com landing comercial e portal de clientes.
 - [x] Definir o FMD como fluxo de preparação de máquina compatível com token, worker, Android SDK, Java, Git, Node e Flutter.
 - [x] Criar endpoints FMD de diagnóstico e geração de comandos seguros por sistema operacional.
 - [x] Criar a área FMD no painel com token, diagnóstico, comando de início e status de preparação.
@@ -167,6 +167,9 @@
 - [x] Gerar Agenda profissional com pastas de telas, componentes, serviços, tema, recursos `res`, imagens e navegação funcional entre páginas na prévia.
 - [x] Evoluir a Agenda gerada pelo Studio para produto comercial, com onboarding, dados persistentes, planos, configurações e identidade visual editável pelo chat.
 - [x] Aplicar o padrão comercial universal a todos os projetos do Studio, com arquitetura modular, recursos visuais, telas, navegação, onboarding e prévia personalizável.
+- [x] Integrar de fato onboarding, persistência local e lembretes ao `App.tsx` e ao fluxo principal da Agenda gerada.
+- [x] Fazer a prévia da Agenda refletir planos, configurações e branding editados pelo chat, com navegação e estados reais.
+- [x] Validar visualmente e por testes o uso efetivo dos módulos comerciais da Agenda, não apenas a presença dos arquivos.
 - [ ] Validar manualmente em desktop e mobile o fluxo completo de Organizações: abrir pelo menu, listar membros, adicionar ou editar papel, remover membro e confirmar feedbacks ou erros visíveis.
 - [ ] Validar manualmente a Central de Notificações pelo menu em desktop e mobile, comprovando carregamento, estado vazio, estado de erro com tentar novamente e recuperação.
 - [x] Substituir erros técnicos de briefing no Studio por validação e orientação clara em português antes do envio.

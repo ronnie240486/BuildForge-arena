@@ -49,7 +49,11 @@ describe("BuildForge domain rules", () => {
 		const app = agenda.find((file) => file.filePath === "App.tsx")?.content ?? "";
 
 		expect(agenda.map((file) => file.filePath)).toEqual(expect.arrayContaining(["App.tsx", "src/features/agenda.ts", "STUDIO_PRODUCT_STANDARD.md", "src/services/localStore.ts", "src/services/reminders.ts", "src/features/subscription.ts", "src/screens/OnboardingScreen.tsx", "src/screens/PlansScreen.tsx", "docs/PRODUCTION_READINESS.md"]));
-		expect(app).toContain("Calendário");
+		expect(app).toContain("Agenda de hoje");
+		expect(app).toContain("loadAppointments");
+		expect(app).toContain("saveAppointments");
+		expect(app).toContain("onboardingDone");
+		expect(app).toContain("scheduleReminder");
 		expect(app).toContain("Lembretes ativos");
 		expect(app).toContain("Insights de produtividade");
 		expect(app).toContain("Configurar lembretes");
