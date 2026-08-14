@@ -13,6 +13,7 @@ function studioErrorMessage(message: string) {
   if (message.includes("framework") || message.includes("too_big")) return "A tecnologia sugerida é muito longa para este projeto. Escolha outra proposta ou simplifique o campo Tecnologia.";
   if (message.includes("too small") || message.includes("at least 12") || message.includes("pelo menos 12 caracteres")) return "Descreva sua ideia com pelo menos 12 caracteres para criar o briefing profissional.";
   if (/failed fetch|fetch failed|networkerror|load failed/i.test(message)) return "Não foi possível conectar ao Studio neste momento. A página já foi reconectada; atualize e tente criar o projeto novamente. Sua ideia não foi perdida.";
+  if (/unexpected token|doctype|not valid json/i.test(message)) return "O Studio recebeu uma resposta temporária inválida, mas seu projeto foi preservado. Atualize a página para carregar os dados novamente.";
   return message;
 }
 
