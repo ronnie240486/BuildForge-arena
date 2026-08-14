@@ -110,15 +110,15 @@
 - [x] Fortalecer o Studio IA com seleção de modelo, biblioteca de prompts, perguntas de refinamento e sugestões profissionais antes da geração.
 - [x] Criar biblioteca reutilizável de prompts profissionais no Studio IA com categorias, objetivo e refinamento guiado.
 - [x] Estruturar os metadados, a pré-visualização e a aplicação consistente da biblioteca de prompts no refinamento guiado.
-- [ ] Ampliar Relatórios com visão por cliente, projeto, status de build e período usando dados reais.
-- [ ] Implementar integração ampliada com GitHub, QR Code para releases e relatórios operacionais por cliente.
+- [x] Ampliar Relatórios com visão por cliente, projeto, status de build e período usando dados reais.
+- [x] Implementar integração ampliada com GitHub, QR Code para releases e relatórios operacionais por cliente.
 - [x] Criar a configuração de repositório, branch e webhook do GitHub por projeto, sem expor o segredo de assinatura.
 - [ ] Expor no painel a configuração GitHub por projeto, protegida por administração e com teste de autorização.
 - [x] Criar a interface administrativa de marca branca para nome, cores e identidade visual da plataforma.
 - [x] Implementar organizações, equipes, suporte por tickets e marca branca.
 - [x] Criar a interface administrativa de organizações e equipes sobre as APIs já publicadas.
 - [x] Implementar gerenciamento de membros da organização: listar, convidar/adicionar, definir papel e remover membro.
-- [ ] Adicionar APIs e testes de autorização para operações de equipes e membros.
+- [x] Adicionar APIs e testes de autorização para operações de organizações e membros, que representam a equipe no escopo de cada organização.
 - [ ] Validar visualmente em desktop e mobile o fluxo completo de organizações e equipes.
 - [x] Implementar página pública de status, monitoramento de workers e notificações configuráveis.
 - [x] Criar painel administrativo de saúde de workers com heartbeat, Doctor, capacidade e alerta de indisponibilidade.
@@ -146,5 +146,5 @@
 - [x] Adicionar em Configurações o token GitHub mascarado, cifrado e exclusivo do servidor.
 - [x] Sincronizar automaticamente com GitHub os arquivos criados ou alterados pelo Studio quando houver token configurado.
 - [ ] Auditar o estado local e remoto do repositório GitHub BuildForge e enviar todas as alterações pendentes confirmadas.
-- [ ] Adicionar filtro por cliente aos Relatórios com dados reais e validação automatizada.
-- [ ] Criar cobertura automatizada específica para autorização da configuração GitHub por projeto e das APIs de organizações, equipes e membros.
+- [x] Adicionar filtro por cliente aos Relatórios com dados reais e validação automatizada.
+- [x] Criar cobertura automatizada específica para autorização da configuração GitHub por projeto e das APIs de organizações, equipes e membros.

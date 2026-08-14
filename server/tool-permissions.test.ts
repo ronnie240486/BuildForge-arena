@@ -89,4 +89,21 @@ describe("permissões de ferramentas", () => {
       message: "Esta área é exclusiva para administradores.",
     });
   });
+
+  it("bloqueia configurações GitHub administrativas e sincronização do Studio para clientes", async () => {
+    const caller = appRouter.createCaller(createClientContext(["dashboard"]));
+
+    await expect(caller.buildforge.github.save({ projectId: 1, repository: "org/projeto", branch: "main", webhookSecret: "segredo-de-webhook-seguro", autoBuild: true, requestedArtifact: "apk" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.buildforge.studio.saveGithubCredential({ token: "ghp_123456789012345678901234567890123456" })).rejects.toMatchObject({ code: "FORBIDDEN", message: "Esta área é exclusiva para administradores." });
+    await expect(caller.buildforge.studio.syncToGithub({ projectId: 1 })).rejects.toMatchObject({ code: "FORBIDDEN", message: "Esta área é exclusiva para administradores." });
+  });
+
+  it("bloqueia consultas e alterações de organizações e membros para clientes", async () => {
+    const caller = appRouter.createCaller(createClientContext(["dashboard", "projects", "builds", "support"]));
+
+    await expect(caller.buildforge.organizations.list()).rejects.toMatchObject({ code: "FORBIDDEN", message: "Esta área é exclusiva para administradores." });
+    await expect(caller.buildforge.organizations.members({ organizationId: 1 })).rejects.toMatchObject({ code: "FORBIDDEN", message: "Esta área é exclusiva para administradores." });
+    await expect(caller.buildforge.organizations.saveMember({ organizationId: 1, userId: 2, role: "developer" })).rejects.toMatchObject({ code: "FORBIDDEN", message: "Esta área é exclusiva para administradores." });
+    await expect(caller.buildforge.organizations.removeMember({ organizationId: 1, userId: 2 })).rejects.toMatchObject({ code: "FORBIDDEN", message: "Esta área é exclusiva para administradores." });
+  });
 });

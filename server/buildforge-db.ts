@@ -681,9 +681,13 @@ export async function getDashboardData(actor: PlatformActor) {
       createdAt: builds.createdAt,
       finishedAt: builds.finishedAt,
       projectName: projects.name,
+      clientId: users.id,
+      clientName: users.name,
+      clientEmail: users.email,
     })
     .from(builds)
     .innerJoin(projects, eq(builds.projectId, projects.id))
+    .leftJoin(users, eq(builds.requestedById, users.id))
     .where(isPlatformAdmin(actor) ? undefined : eq(builds.requestedById, actor.id))
     .orderBy(desc(builds.createdAt))
     .limit(8);
