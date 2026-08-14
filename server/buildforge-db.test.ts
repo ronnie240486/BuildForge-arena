@@ -51,6 +51,14 @@ describe("BuildForge domain rules", () => {
     expect(preference?.content).toContain('"theme": "medieval"');
   });
 
+  it("persiste cores para os dois lados e material do tabuleiro pedidos no chat", () => {
+    const preference = studioPreviewPreferenceFile("troque as peças azul para vermelho, adversário verde e tabuleiro de mármore", []);
+
+    expect(preference?.content).toContain('"pieceColor": "red"');
+    expect(preference?.content).toContain('"opponentColor": "green"');
+    expect(preference?.content).toContain('"board": "marble"');
+  });
+
   it("não confirma arquivos idênticos como alterações do Studio", () => {
     const existing = [{ filePath: "App.tsx", language: "typescript", content: "export default function App() { return null; }" }];
     const changes = materialStudioFileChanges(existing, [...existing, { filePath: "README.md", language: "markdown", content: "# Atualizado" }]);

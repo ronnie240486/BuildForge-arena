@@ -9,28 +9,29 @@ function isCheckersProject(preview: StudioPreview) {
   return /\b(damas|checkers)\b/i.test(`${preview.project.name} ${preview.project.framework} ${preview.files.map((file) => file.content.slice(0, 300)).join(" ")}`);
 }
 
-type CheckersTheme = { label: string; title: string; start: string; end: string; medieval: boolean };
+type CheckersTheme = { label: string; title: string; start: string; end: string; opponentLabel: string; opponentTitle: string; opponentStart: string; opponentEnd: string; boardLight: string; boardDark: string; medieval: boolean };
 
 function detectCheckersTheme(preview: StudioPreview): CheckersTheme {
   const configFile = preview.files.find((file) => file.filePath === "studio-preview.json")?.content;
   let configuredColor = "";
   let configuredTheme = "";
-  try { const config = JSON.parse(configFile ?? "{}") as { checkers?: { pieceColor?: string; theme?: string } }; configuredColor = String(config.checkers?.pieceColor ?? "").toLowerCase(); configuredTheme = String(config.checkers?.theme ?? "").toLowerCase(); } catch { configuredColor = ""; }
+  let configuredOpponentColor = "";
+  let configuredBoard = "";
+  try { const config = JSON.parse(configFile ?? "{}") as { checkers?: { pieceColor?: string; opponentColor?: string; board?: string; theme?: string } }; configuredColor = String(config.checkers?.pieceColor ?? "").toLowerCase(); configuredOpponentColor = String(config.checkers?.opponentColor ?? "").toLowerCase(); configuredBoard = String(config.checkers?.board ?? "").toLowerCase(); configuredTheme = String(config.checkers?.theme ?? "").toLowerCase(); } catch { configuredColor = ""; }
   const source = preview.files.map((file) => file.content).join("\n").toLowerCase();
   const medieval = configuredTheme === "medieval" || /medieval|reino|castelo/.test(source);
-  const theme = (label: string, title: string, start: string, end: string): CheckersTheme => ({ label, title, start, end, medieval });
-  if (configuredColor === "pink") return theme("rosas", "Rosas", "#f9a8d4", "#be185d");
-  if (configuredColor === "yellow") return theme("amarelas", "Amarelas", "#fde047", "#ca8a04");
-  if (configuredColor === "red") return theme("vermelhas", "Vermelhas", "#fb7185", "#b91c1c");
-  if (configuredColor === "green") return theme("verdes", "Verdes", "#4ade80", "#15803d");
-  if (/rosa|pink|#f9a8d4|#be185d/.test(source)) return theme("rosas", "Rosas", "#f9a8d4", "#be185d");
-  if (/amarel|#ffd60a|#facc15|#eab308/.test(source)) return theme("amarelas", "Amarelas", "#fde047", "#ca8a04");
-  if (/vermelh|#ef4444|#dc2626|#f43f5e/.test(source)) return theme("vermelhas", "Vermelhas", "#fb7185", "#b91c1c");
-  if (/verde|#22c55e|#16a34a/.test(source)) return theme("verdes", "Verdes", "#4ade80", "#15803d");
-  return theme("azuis", "Azuis", "#38bdf8", "#1d4ed8");
+  const palette = (color: string, fallback: [string, string, string, string]) => color === "pink" ? ["rosas", "Rosas", "#f9a8d4", "#be185d"] : color === "yellow" ? ["amarelas", "Amarelas", "#fde047", "#ca8a04"] : color === "red" ? ["vermelhas", "Vermelhas", "#fb7185", "#b91c1c"] : color === "green" ? ["verdes", "Verdes", "#4ade80", "#15803d"] : color === "blue" ? ["azuis", "Azuis", "#38bdf8", "#1d4ed8"] : fallback;
+  const board = configuredBoard === "marble" ? ["#e5e7eb", "#374151"] : configuredBoard === "wood" ? ["#d6a56a", "#5b2e14"] : configuredBoard === "obsidian" ? ["#71717a", "#18181b"] : medieval ? ["#d8bb80", "#623617"] : ["#e7d7be", "#7c4b35"];
+  const theme = (color: string, fallback: [string, string, string, string]): CheckersTheme => { const [label, title, start, end] = palette(color, fallback); const [opponentLabel, opponentTitle, opponentStart, opponentEnd] = palette(configuredOpponentColor, ["roxas", "Roxas", "#c084fc", "#6d28d9"]); return { label, title, start, end, opponentLabel, opponentTitle, opponentStart, opponentEnd, boardLight: board[0], boardDark: board[1], medieval }; };
+  if (configuredColor) return theme(configuredColor, ["azuis", "Azuis", "#38bdf8", "#1d4ed8"]);
+  if (/rosa|pink|#f9a8d4|#be185d/.test(source)) return theme("pink", ["azuis", "Azuis", "#38bdf8", "#1d4ed8"]);
+  if (/amarel|#ffd60a|#facc15|#eab308/.test(source)) return theme("yellow", ["azuis", "Azuis", "#38bdf8", "#1d4ed8"]);
+  if (/vermelh|#ef4444|#dc2626|#f43f5e/.test(source)) return theme("red", ["azuis", "Azuis", "#38bdf8", "#1d4ed8"]);
+  if (/verde|#22c55e|#16a34a/.test(source)) return theme("green", ["azuis", "Azuis", "#38bdf8", "#1d4ed8"]);
+  return theme("blue", ["azuis", "Azuis", "#38bdf8", "#1d4ed8"]);
 }
 
-export function createCheckersPreviewDocument(name: string, theme: CheckersTheme = { label: "azuis", title: "Azuis", start: "#38bdf8", end: "#1d4ed8", medieval: false }) {
+export function createCheckersPreviewDocument(name: string, theme: CheckersTheme = { label: "azuis", title: "Azuis", start: "#38bdf8", end: "#1d4ed8", opponentLabel: "roxas", opponentTitle: "Roxas", opponentStart: "#c084fc", opponentEnd: "#6d28d9", boardLight: "#e7d7be", boardDark: "#7c4b35", medieval: false }) {
   const safeName = escapeHtml(name);
   const medievalPresentation = theme.medieval ? `<style>
 body{background:radial-gradient(circle at 12% 4%,#9a5a21 0,#3a1d0b 32%,#130905 76%)!important}.game{position:relative}.game:before{content:"";position:absolute;inset:9px 7px auto;height:5px;border-radius:999px;background:linear-gradient(90deg,transparent,#f9d878,#8d4a16,#f9d878,transparent);opacity:.92}.eyebrow{color:#f7cf73!important;text-shadow:0 1px 0 #2a1207}.medieval-banner{margin:10px 0 3px;color:#f5dca3;font-family:Georgia,serif;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}.board-wrap{position:relative;border:6px ridge #c38a36!important;background:linear-gradient(145deg,#5a2d11,#1f0d05)!important;box-shadow:0 0 0 3px #241006,0 18px 45px rgba(0,0,0,.5)!important}.board-wrap:before,.board-wrap:after{content:"♜";position:absolute;z-index:2;color:#f2cb73;font-family:Georgia,serif;font-size:22px;line-height:1;text-shadow:0 2px 0 #3e1d08}.board-wrap:before{left:8px;top:6px}.board-wrap:after{right:8px;bottom:6px;transform:rotate(180deg)}.board{border:10px ridge #d29a47!important;box-shadow:inset 0 0 0 3px #4a210c,0 0 0 2px #251005!important}.cell.light{background:linear-gradient(135deg,#ecd49d,#c69b52)!important}.cell.dark{background:linear-gradient(135deg,#7c3f16,#3f1b0b)!important}.piece{inset:11%!important;border:3px solid rgba(255,239,192,.78)!important;box-shadow:inset 0 5px 8px rgba(255,255,255,.26),inset 0 -7px 10px rgba(0,0,0,.38),0 4px 8px rgba(0,0,0,.55)!important}.piece:after{position:absolute;inset:0;display:grid;place-items:center;font-family:Georgia,serif;font-size:clamp(15px,3vw,27px);font-weight:700;text-shadow:0 2px 2px rgba(0,0,0,.58)}.piece.blue:after{content:"♜";color:#fff1bd}.piece.violet:after{content:"♛";color:#fce7ff}.piece.king:before{content:"✦"!important;font-size:clamp(9px,2vw,15px)!important;z-index:2;color:#ffd770!important}.card{background:linear-gradient(155deg,rgba(56,25,10,.92),rgba(18,8,4,.92))!important;border-color:rgba(245,197,103,.32)!important}.card h2{color:#f5dca3}.reset{background:linear-gradient(135deg,#a6691f,#5d2810)!important;border:1px solid #e4b85c!important}.status{border-color:rgba(245,203,108,.5)!important;background:rgba(104,55,18,.5)!important;color:#fff0c0!important}
@@ -46,13 +47,13 @@ const board=document.getElementById('board'),turnNode=document.getElementById('t
     .replace("Azuis<strong", `${theme.title}<strong`)
     .replace("As azuis começam", `As ${theme.label} começam`)
     .replace("const board=", `const primaryLabel=${JSON.stringify(theme.label)};const board=`)
-    .replace("?'azuis':'roxas'", "?primaryLabel:'roxas'")
+    .replace("?'azuis':'roxas'", `?primaryLabel:${JSON.stringify(theme.opponentLabel)}`)
     .replace("BUILD FORGE STUDIO · JOGO INTERATIVO", theme.medieval ? "BUILD FORGE STUDIO · REINO MEDIEVAL" : "BUILD FORGE STUDIO · JOGO INTERATIVO")
     .replace("background:radial-gradient(circle at 15% 0,#352466,#090d1c 52%,#050814)", theme.medieval ? "background:radial-gradient(circle at 15% 0,#6b3c18,#201107 52%,#090604)" : "background:radial-gradient(circle at 15% 0,#352466,#090d1c 52%,#050814)")
     .replace("border:6px solid #291c38", theme.medieval ? "border:6px solid #8c5a24" : "border:6px solid #291c38")
     .replace(".cell.light{background:#e7d7be}", theme.medieval ? ".cell.light{background:#d8bb80}" : ".cell.light{background:#e7d7be}")
     .replace(".cell.dark{background:#7c4b35}", theme.medieval ? ".cell.dark{background:#623617}" : ".cell.dark{background:#7c4b35}")
-    .replace("</head>", `${medievalPresentation}</head>`)
+    .replace("</head>", `${medievalPresentation}<style>.piece.violet{background:linear-gradient(145deg,${theme.opponentStart},${theme.opponentEnd})!important}.cell.light{background:${theme.boardLight}!important}.cell.dark{background:${theme.boardDark}!important}</style></head>`)
     .replace(`<h1>${safeName}</h1>`, theme.medieval ? `<p class="medieval-banner">♜ Coroa das Sete Torres</p><h1>${safeName}</h1>` : `<h1>${safeName}</h1>`);
 }
 

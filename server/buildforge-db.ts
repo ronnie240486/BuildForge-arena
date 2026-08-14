@@ -472,12 +472,16 @@ export async function syncStudioProjectToGithub(input: { actor: PlatformActor; p
 export function studioPreviewPreferenceFile(message: string, files: Array<{ filePath: string; content: string }>) {
   const source = message.toLowerCase();
   const existing = files.find((file) => file.filePath === "studio-preview.json")?.content;
-  let current: { checkers?: { pieceColor?: string; theme?: string } } = {};
+  let current: { checkers?: { pieceColor?: string; opponentColor?: string; board?: string; theme?: string } } = {};
   try { current = existing ? JSON.parse(existing) as typeof current : {}; } catch { current = {}; }
-  const pieceColor = /rosa|pink/.test(source) ? "pink" : /amarel|yellow/.test(source) ? "yellow" : /vermelh|red/.test(source) ? "red" : /verde|green/.test(source) ? "green" : /azul|blue/.test(source) ? "blue" : current.checkers?.pieceColor;
+  const colorFrom = (value: string) => /rosa|pink/.test(value) ? "pink" : /amarel|yellow/.test(value) ? "yellow" : /vermelh|red/.test(value) ? "red" : /verde|green/.test(value) ? "green" : /azul|blue/.test(value) ? "blue" : undefined;
+  const requestedColor = colorFrom(source.match(/(?:para|por|em)\s+(?:a cor )?(rosa|pink|amarela|amarelo|yellow|vermelha|vermelho|red|verde|green|azul|blue)/)?.[1] ?? source);
+  const opponentColor = colorFrom(source.match(/(?:advers[aá]ri[oa]|oponent[ea]|inimig[oa]|segundo jogador|outras peças)\s*(?:em|para|na cor|cor)?\s*(rosa|pink|amarela|amarelo|yellow|vermelha|vermelho|red|verde|green|azul|blue)/)?.[1] ?? "") ?? current.checkers?.opponentColor;
+  const pieceColor = requestedColor ?? current.checkers?.pieceColor;
+  const board = /m[aá]rmore|marble/.test(source) ? "marble" : /madeira|wood/.test(source) ? "wood" : /obsidiana|obsidian|preto/.test(source) ? "obsidian" : current.checkers?.board;
   const theme = /medieval|reino|castelo/.test(source) ? "medieval" : current.checkers?.theme;
-  if (!pieceColor && !theme) return null;
-  return { filePath: "studio-preview.json", language: "json", content: JSON.stringify({ checkers: { pieceColor: pieceColor ?? "blue", theme: theme ?? "classic" } }, null, 2) };
+  if (!pieceColor && !opponentColor && !board && !theme) return null;
+  return { filePath: "studio-preview.json", language: "json", content: JSON.stringify({ checkers: { pieceColor: pieceColor ?? "blue", opponentColor: opponentColor ?? "violet", board: board ?? "classic", theme: theme ?? "classic" } }, null, 2) };
 }
 
 export function materialStudioFileChanges(existingFiles: Array<{ filePath: string; language: string; content: string }>, candidates: Array<{ filePath: string; language: string; content: string }>) {

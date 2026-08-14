@@ -26,6 +26,14 @@ describe("prévia do Studio", () => {
     expect(html).toContain("Coroa das Sete Torres");
   });
 
+  it("aplica duas paletas de peças e um material de tabuleiro definidos pelo chat", () => {
+    const html = createStudioPreviewDocument({ project: { name: "Damas Arena", projectType: "application", framework: "React Native" }, files: [{ filePath: "studio-preview.json", language: "json", content: '{"checkers":{"pieceColor":"red","opponentColor":"green","board":"marble"}}' }] });
+
+    expect(html).toContain("#fb7185");
+    expect(html).toContain("#4ade80");
+    expect(html).toContain("#e5e7eb");
+  });
+
   it("mantém a prévia HTML comum para projetos que não são jogos de damas", () => {
     const html = createStudioPreviewDocument({ project: { name: "Agenda", projectType: "website", framework: "React" }, files: [{ filePath: "index.html", language: "html", content: "<html><head></head><body><div id=\"app\"></div></body></html>" }, { filePath: "src/main.ts", language: "typescript", content: "root.innerHTML = `<main>Agenda</main>`" }] });
 
