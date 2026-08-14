@@ -23,6 +23,7 @@ describe("prévia do Studio", () => {
     expect(html).toContain("peças rosas");
     expect(html).toContain("#f9a8d4");
     expect(html).toContain("REINO MEDIEVAL");
+    expect(html).toContain("Coroa das Sete Torres");
   });
 
   it("mantém a prévia HTML comum para projetos que não são jogos de damas", () => {
