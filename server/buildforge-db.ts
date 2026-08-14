@@ -1617,8 +1617,16 @@ export async function generateStarterApp(input: { actor: PlatformActor; name: st
   const created = await createProject({ actor: input.actor, name: input.name.trim(), description: blueprint.summary.slice(0, 5000), source: "zip", reference: `${blueprint.framework}-generated` });
   const archive = Buffer.from(zipSync(Object.fromEntries(safeFiles.map((file) => [file.path, strToU8(file.content)]))));
   await uploadProjectZip({ actor: input.actor, projectId: created.id, filename: `${safeFilename(input.name)}-starter.zip`, contentBase64: archive.toString("base64") });
-  await addAuditLog({ actorId: input.actor.id, action: "ai.starter_app_generated", entityType: "project", entityId: String(created.id), metadata: { framework: blueprint.framework, files: safeFiles.map((file) => file.path), model } });
-  return { projectId: created.id, framework: blueprint.framework, summary: blueprint.summary, files: safeFiles.map((file) => file.path), model };
+  const studioProject = await createStudioProject({ actor: input.actor, name: input.name.trim(), projectType: "application", framework: blueprint.framework });
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível para preparar a prévia temporária.");
+  for (const file of safeFiles) {
+    const language = file.path.endsWith(".tsx") || file.path.endsWith(".ts") ? "typescript" : file.path.endsWith(".json") ? "json" : file.path.endsWith(".css") ? "css" : file.path.endsWith(".md") ? "markdown" : "text";
+    await db.insert(studioFiles).values({ studioProjectId: studioProject.id, filePath: file.path, language, content: file.content }).onDuplicateKeyUpdate({ set: { language, content: file.content } });
+  }
+  await db.insert(studioMessages).values({ studioProjectId: studioProject.id, authorId: input.actor.id, role: "system", content: "Prévia temporária preparada a partir do aplicativo gerado. Revise e edite pelo chat antes de iniciar uma build.", changedFiles: safeFiles.map((file) => file.path) });
+  await addAuditLog({ actorId: input.actor.id, action: "ai.starter_app_generated", entityType: "project", entityId: String(created.id), metadata: { framework: blueprint.framework, files: safeFiles.map((file) => file.path), model, studioProjectId: studioProject.id } });
+  return { projectId: created.id, studioProjectId: studioProject.id, previewToken: studioProject.previewToken, framework: blueprint.framework, summary: blueprint.summary, files: safeFiles.map((file) => file.path), model };
 }
 
 export async function planProjectMigration(input: { actor: PlatformActor; target: "android" | "flutter" | "react_native"; sourceDescription: string }) {
