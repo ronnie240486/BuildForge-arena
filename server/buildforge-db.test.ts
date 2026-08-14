@@ -65,6 +65,14 @@ describe("BuildForge domain rules", () => {
     expect(preference?.content).toContain('"mode": "competitive"');
   });
 
+  it("persiste xadrez 3D medieval como tipo de prévia específico", () => {
+    const preference = studioPreviewPreferenceFile("crie um xadrez 3D medieval com peças vermelhas", []);
+
+    expect(preference?.content).toContain('"gameType": "chess"');
+    expect(preference?.content).toContain('"dimensionalStyle": "3d"');
+    expect(preference?.content).toContain('"theme": "medieval"');
+  });
+
   it("recupera uma resposta válida mesmo quando vier dentro de bloco de código", () => {
     const edit = parseStudioEditPayload('```json\n{"reply":"Pronto","files":[{"path":"App.tsx","language":"typescript","content":"export default 1"}]}\n```');
 

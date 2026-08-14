@@ -472,7 +472,7 @@ export async function syncStudioProjectToGithub(input: { actor: PlatformActor; p
 export function studioPreviewPreferenceFile(message: string, files: Array<{ filePath: string; content: string }>) {
   const source = message.toLowerCase();
   const existing = files.find((file) => file.filePath === "studio-preview.json")?.content;
-  let current: { checkers?: { pieceColor?: string; opponentColor?: string; board?: string; theme?: string; mode?: string } } = {};
+  let current: { checkers?: { pieceColor?: string; opponentColor?: string; board?: string; theme?: string; mode?: string; gameType?: string; dimensionalStyle?: string } } = {};
   try { current = existing ? JSON.parse(existing) as typeof current : {}; } catch { current = {}; }
   const colorFrom = (value: string) => /rosa|pink/.test(value) ? "pink" : /amarel|yellow/.test(value) ? "yellow" : /vermelh|red/.test(value) ? "red" : /verde|green/.test(value) ? "green" : /azul|blue/.test(value) ? "blue" : undefined;
   const requestedColor = colorFrom(source.match(/(?:para|por|em)\s+(?:a cor )?(rosa|pink|amarela|amarelo|yellow|vermelha|vermelho|red|verde|green|azul|blue)/)?.[1] ?? source);
@@ -481,8 +481,10 @@ export function studioPreviewPreferenceFile(message: string, files: Array<{ file
   const board = /m[aá]rmore|marble/.test(source) ? "marble" : /madeira|wood/.test(source) ? "wood" : /obsidiana|obsidian|preto/.test(source) ? "obsidian" : current.checkers?.board;
   const theme = /medieval|reino|castelo/.test(source) ? "medieval" : current.checkers?.theme;
   const mode = /ranqueamento|\belo\b|matchmaking|torneio|espectador|replay|competitiv/.test(source) ? "competitive" : current.checkers?.mode;
-  if (!pieceColor && !opponentColor && !board && !theme && !mode) return null;
-  return { filePath: "studio-preview.json", language: "json", content: JSON.stringify({ checkers: { pieceColor: pieceColor ?? "blue", opponentColor: opponentColor ?? "violet", board: board ?? "classic", theme: theme ?? "classic", mode: mode ?? "classic" } }, null, 2) };
+  const gameType = /xadrez|chess/.test(source) ? "chess" : current.checkers?.gameType;
+  const dimensionalStyle = /3d|tridimensional|três dimensões/.test(source) ? "3d" : current.checkers?.dimensionalStyle;
+  if (!pieceColor && !opponentColor && !board && !theme && !mode && !gameType && !dimensionalStyle) return null;
+  return { filePath: "studio-preview.json", language: "json", content: JSON.stringify({ checkers: { pieceColor: pieceColor ?? "blue", opponentColor: opponentColor ?? "violet", board: board ?? "classic", theme: theme ?? "classic", mode: mode ?? "classic", gameType: gameType ?? "checkers", dimensionalStyle: dimensionalStyle ?? "2d" } }, null, 2) };
 }
 
 export function materialStudioFileChanges(existingFiles: Array<{ filePath: string; language: string; content: string }>, candidates: Array<{ filePath: string; language: string; content: string }>) {

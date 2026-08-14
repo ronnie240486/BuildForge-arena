@@ -42,6 +42,15 @@ describe("prévia do Studio", () => {
     expect(html).toContain("Arena ao vivo");
   });
 
+  it("renderiza um protótipo específico de xadrez 3D medieval", () => {
+    const html = createStudioPreviewDocument({ project: { name: "Xadrez dos Reinos", projectType: "application", framework: "React Native" }, files: [{ filePath: "studio-preview.json", language: "json", content: '{"checkers":{"gameType":"chess","dimensionalStyle":"3d","theme":"medieval","pieceColor":"red","opponentColor":"green"}}' }] });
+
+    expect(html).toContain("XADREZ 3D");
+    expect(html).toContain("COROA DAS SETE TORRES");
+    expect(html).toContain("Ranking ELO");
+    expect(html).toContain("♚");
+  });
+
   it("mantém a prévia HTML comum para projetos que não são jogos de damas", () => {
     const html = createStudioPreviewDocument({ project: { name: "Agenda", projectType: "website", framework: "React" }, files: [{ filePath: "index.html", language: "html", content: "<html><head></head><body><div id=\"app\"></div></body></html>" }, { filePath: "src/main.ts", language: "typescript", content: "root.innerHTML = `<main>Agenda</main>`" }] });
 

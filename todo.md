@@ -158,4 +158,5 @@
 - [x] Substituir o modelo fixo de damas por uma prévia com configuração visual completa persistida pelo chat.
 - [x] Aplicar a proposta Damas dos Reinos na prévia com menu competitivo, ranking, modos, torneios, espectador e replays navegáveis.
 - [x] Recuperar respostas inválidas do gerador no Studio sem perder o projeto, com nova tentativa segura e erro claro em português.
+- [x] Substituir a prévia genérica de damas por protótipos específicos de jogo, começando pelo xadrez 3D medieval solicitado no Studio.
 - [x] Substituir erros técnicos de briefing no Studio por validação e orientação clara em português antes do envio.
