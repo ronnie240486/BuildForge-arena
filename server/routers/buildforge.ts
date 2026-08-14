@@ -539,7 +539,7 @@ export const buildforgeRouter = router({
       try { return await removeAiProviderConfig({ actor: actorFromUser(ctx.user), provider: input.provider }); }
       catch (error) { throw toTrpcError(error); }
     }),
-    refinePrompt: adminProcedure.input(z.object({ framework: z.enum(["android", "flutter", "react_native"]), idea: z.string().trim().min(12).max(6000), audience: z.string().trim().max(800).optional(), preferredModel: z.string().trim().max(160).optional(), provider: z.enum(["buildforge", "openai", "anthropic", "gemini"]).optional() })).mutation(async ({ ctx, input }) => {
+    refinePrompt: adminProcedure.input(z.object({ framework: z.enum(["android", "flutter", "react_native"]), idea: z.string().trim().min(12, "Descreva sua ideia com pelo menos 12 caracteres para criar o briefing profissional.").max(6000), audience: z.string().trim().max(800).optional(), preferredModel: z.string().trim().max(160).optional(), provider: z.enum(["buildforge", "openai", "anthropic", "gemini"]).optional() })).mutation(async ({ ctx, input }) => {
       try { return await refineStudioPrompt({ actor: actorFromUser(ctx.user), ...input }); }
       catch (error) { throw toTrpcError(error); }
     }),

@@ -11,6 +11,7 @@ type StudioAlternative = { title: string; positioning: string; audience: string;
 
 function studioErrorMessage(message: string) {
   if (message.includes("framework") || message.includes("too_big")) return "A tecnologia sugerida é muito longa para este projeto. Escolha outra proposta ou simplifique o campo Tecnologia.";
+  if (message.includes("too small") || message.includes("at least 12") || message.includes("pelo menos 12 caracteres")) return "Descreva sua ideia com pelo menos 12 caracteres para criar o briefing profissional.";
   return message;
 }
 
@@ -58,7 +59,7 @@ export default function StudioPage() {
   const generateAlternatives = trpc.buildforge.studio.alternatives.useMutation({ onSuccess: (result) => { setAlternatives(result.alternatives); setSelectedAlternativeIndexes([]); toast.success("10 propostas profissionais foram preparadas."); }, onError: (error) => toast.error(error.message) });
   const generate = trpc.buildforge.studio.generateApp.useMutation({ onSuccess: (result) => { toast.success(`Projeto inicial criado com ${result.files.length} arquivo(s).`); setLocation("/projects"); }, onError: (error) => toast.error(error.message) });
   const migrate = trpc.buildforge.studio.planMigration.useMutation({ onSuccess: (result) => { setPlan(result.plan); toast.success(`Plano criado por ${result.model}.`); }, onError: (error) => toast.error(error.message) });
-  const refine = trpc.buildforge.studio.refinePrompt.useMutation({ onSuccess: (result) => { setRefinement(result); toast.success(`Prompt profissional preparado por ${result.model}.`); }, onError: (error) => toast.error(error.message) });
+  const refine = trpc.buildforge.studio.refinePrompt.useMutation({ onSuccess: (result) => { setRefinement(result); toast.success(`Prompt profissional preparado por ${result.model}.`); }, onError: (error) => toast.error(studioErrorMessage(error.message)) });
   const useProfessionalPrompt = () => { if (!refinement) return; setPrompt(refinement.professionalPrompt); setTab("generate"); toast.success("Prompt profissional aplicado à geração."); };
   const modelOptions = models.data?.models ?? [];
   const selectedStudioFile = studioDetail.data?.files.find((file) => file.filePath === selectedFilePath) ?? studioDetail.data?.files[0];
