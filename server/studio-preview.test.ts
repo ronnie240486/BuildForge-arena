@@ -62,10 +62,27 @@ describe("prévia do Studio", () => {
     expect(html).not.toContain("Esta prévia será atualizada quando o Studio gerar uma tela compatível");
   });
 
-  it("mantém a prévia HTML comum para projetos que não são jogos de damas", () => {
+  it("aplica marca e cores configuradas pelo chat à Agenda", () => {
+    const html = createStudioPreviewDocument({ project: { name: "Agenda", projectType: "application", framework: "react_native" }, files: [{ filePath: "App.tsx", language: "typescript", content: "Agenda com calendário e lembretes." }, { filePath: "studio-preview.json", language: "json", content: '{"agenda":{"primary":"green","brandName":"Agenda Aurora"}}' }] });
+
+    expect(html).toContain("Agenda Aurora");
+    expect(html).toContain("--agenda-primary:#22c55e");
+    expect(html).toContain("var(--agenda-primary)");
+  });
+
+  it("entrega uma prévia comercial navegável para websites que não são jogos", () => {
     const html = createStudioPreviewDocument({ project: { name: "Agenda", projectType: "website", framework: "React" }, files: [{ filePath: "index.html", language: "html", content: "<html><head></head><body><div id=\"app\"></div></body></html>" }, { filePath: "src/main.ts", language: "typescript", content: "root.innerHTML = `<main>Agenda</main>`" }] });
 
-    expect(html).toContain("<main>Agenda</main>");
+    expect(html).toContain("Pronto para transformar sua ideia em negócio.");
+    expect(html).toContain("Marca personalizável");
     expect(html).not.toContain('id="board"');
+  });
+
+  it("aplica marca e cor à prévia comercial universal", () => {
+    const html = createStudioPreviewDocument({ project: { name: "Portal", projectType: "application", framework: "react_native" }, files: [{ filePath: "App.tsx", language: "typescript", content: "Aplicativo comercial com conta e planos." }, { filePath: "studio-preview.json", language: "json", content: '{"product":{"primary":"green","brandName":"Portal Aurora"}}' }] });
+
+    expect(html).toContain("Portal Aurora");
+    expect(html).toContain("--p:#22c55e");
+    expect(html).toContain("Marca personalizável");
   });
 });

@@ -37,9 +37,10 @@ describe("BuildForge domain rules", () => {
 		const website = studioStarterFiles("website", "Portal de Teste");
 		const application = studioStarterFiles("application", "App de Teste");
 
-    expect(website.map((file) => file.filePath)).toEqual(expect.arrayContaining(["README.md", "package.json", "index.html", "src/main.ts", "src/style.css"]));
-    expect(website.find((file) => file.filePath === "index.html")?.content).toContain("Projeto Studio");
-    expect(application.map((file) => file.filePath)).toEqual(expect.arrayContaining(["README.md", "package.json", "App.tsx", "app.json"]));
+	    expect(website.map((file) => file.filePath)).toEqual(expect.arrayContaining(["README.md", "package.json", "index.html", "src/main.ts", "src/style.css"]));
+	    expect(website.find((file) => file.filePath === "src/main.ts")?.content).toContain("PRODUTO DIGITAL PROFISSIONAL");
+	    expect(website.map((file) => file.filePath)).toEqual(expect.arrayContaining(["src/navigation/routes.ts", "src/services/billing.ts", "assets/images/brand-mark.svg"]));
+	    expect(application.map((file) => file.filePath)).toEqual(expect.arrayContaining(["README.md", "package.json", "App.tsx", "app.json", "src/navigation/routes.ts", "src/screens/OnboardingScreen.tsx", "res/drawable/product-hero.svg"]));
 		expect(application.find((file) => file.filePath === "App.tsx")?.content).toContain("SafeAreaView");
 	});
 
@@ -82,6 +83,13 @@ describe("BuildForge domain rules", () => {
     expect(preference?.content).toContain('"gameType": "chess"');
     expect(preference?.content).toContain('"dimensionalStyle": "3d"');
     expect(preference?.content).toContain('"theme": "medieval"');
+  });
+
+  it("persiste marca e cor para projetos comerciais que não são jogos", () => {
+    const preference = studioPreviewPreferenceFile("mude a cor para verde e o nome para Portal Aurora", [{ filePath: "App.tsx", content: "Aplicativo de serviços com conta e planos." }]);
+
+    expect(preference?.content).toContain('"primary": "green"');
+    expect(preference?.content).toContain('"brandName": "Portal Aurora"');
   });
 
   it("recupera uma resposta válida mesmo quando vier dentro de bloco de código", () => {
