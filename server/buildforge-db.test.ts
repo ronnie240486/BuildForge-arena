@@ -33,15 +33,26 @@ describe("BuildForge domain rules", () => {
     expect(() => detectZipFramework(Buffer.from(zipSync({ "notes/readme.txt": strToU8("sem projeto") })))).toThrow("não contém um projeto");
   });
 
-  it("cria estruturas iniciais completas e visualizáveis para website e aplicativo", () => {
-    const website = studioStarterFiles("website", "Portal de Teste");
-    const application = studioStarterFiles("application", "App de Teste");
+	it("cria estruturas iniciais completas e visualizáveis para website e aplicativo", () => {
+		const website = studioStarterFiles("website", "Portal de Teste");
+		const application = studioStarterFiles("application", "App de Teste");
 
     expect(website.map((file) => file.filePath)).toEqual(expect.arrayContaining(["README.md", "package.json", "index.html", "src/main.ts", "src/style.css"]));
     expect(website.find((file) => file.filePath === "index.html")?.content).toContain("Projeto Studio");
     expect(application.map((file) => file.filePath)).toEqual(expect.arrayContaining(["README.md", "package.json", "App.tsx", "app.json"]));
-    expect(application.find((file) => file.filePath === "App.tsx")?.content).toContain("SafeAreaView");
-  });
+		expect(application.find((file) => file.filePath === "App.tsx")?.content).toContain("SafeAreaView");
+	});
+
+	it("cria uma agenda eletrônica profissional completa a partir de um pedido simples", () => {
+		const agenda = studioStarterFiles("application", "Agenda Eletrônica Top");
+		const app = agenda.find((file) => file.filePath === "App.tsx")?.content ?? "";
+
+		expect(agenda.map((file) => file.filePath)).toEqual(expect.arrayContaining(["App.tsx", "src/features/agenda.ts", "STUDIO_PRODUCT_STANDARD.md"]));
+		expect(app).toContain("Calendário");
+		expect(app).toContain("Lembretes ativos");
+		expect(app).toContain("Insights de produtividade");
+		expect(app).toContain("Configurar lembretes");
+	});
 
   it("persiste a preferência visual do tabuleiro a partir de pedidos do chat", () => {
     const preference = studioPreviewPreferenceFile("Crie um tabuleiro medieval e mude as peças azuis para rosa", []);

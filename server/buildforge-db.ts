@@ -327,6 +327,56 @@ export async function saveBrandingConfig(input: { actor: PlatformActor; brandNam
   return { success: true };
 }
 
+function isAgendaStudioProject(name: string) {
+  return /agenda|agendamento|calend[áa]rio|planejamento|hor[áa]rio/i.test(name);
+}
+
+function agendaApplicationStarterFiles(title: string) {
+  const appSource = `import { useMemo, useState } from "react";
+import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+
+type Appointment = { id: number; time: string; title: string; category: string; done?: boolean };
+const initialAppointments: Appointment[] = [
+  { id: 1, time: "09:00", title: "Revisão de prioridades", category: "Foco" },
+  { id: 2, time: "14:30", title: "Sessão de estudo", category: "Estudo" },
+  { id: 3, time: "18:00", title: "Planejar amanhã", category: "Rotina" },
+];
+
+export default function App() {
+  const [tab, setTab] = useState<"Hoje" | "Calendário" | "Insights" | "Ajustes">("Hoje");
+  const [appointments, setAppointments] = useState(initialAppointments);
+  const [query, setQuery] = useState("");
+  const visible = useMemo(() => appointments.filter((item) => item.title.toLowerCase().includes(query.toLowerCase())), [appointments, query]);
+  const toggle = (id: number) => setAppointments((items) => items.map((item) => item.id === id ? { ...item, done: !item.done } : item));
+  const add = () => setAppointments((items) => [...items, { id: Date.now(), time: "20:00", title: "Novo compromisso", category: "Pessoal" }]);
+  const done = appointments.filter((item) => item.done).length;
+
+  return <SafeAreaView style={styles.page}><View style={styles.topbar}><View><Text style={styles.eyebrow}>AGENDA ELETRÔNICA</Text><Text style={styles.title}>${title}</Text></View><View style={styles.avatar}><Text style={styles.avatarText}>AE</Text></View></View>
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      {tab === "Hoje" && <><View style={styles.week}>{["SEG 12","TER 13","QUA 14","QUI 15","SEX 16","SÁB 17","DOM 18"].map((day, index) => <View key={day} style={[styles.day, index === 2 && styles.activeDay]}><Text style={[styles.dayText, index === 2 && styles.activeDayText]}>{day.split(" ")[0]}</Text><Text style={[styles.dayNumber, index === 2 && styles.activeDayText]}>{day.split(" ")[1]}</Text></View>)}</View>
+        <View style={styles.hero}><Text style={styles.heroTitle}>Seu dia, organizado.</Text><Text style={styles.heroCopy}>{done} de {appointments.length} atividades concluídas · sequência de foco: 7 dias · Lembretes ativos: 3</Text><View style={styles.progressTrack}><View style={[styles.progress, { width: appointments.length ? \`\${Math.round((done / appointments.length) * 100)}%\` : "0%" }]} /></View></View>
+        <TextInput value={query} onChangeText={setQuery} placeholder="Buscar compromisso" placeholderTextColor="#7180a8" style={styles.search} />
+        <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Agenda de hoje</Text><TouchableOpacity onPress={add}><Text style={styles.link}>+ Novo</Text></TouchableOpacity></View>
+        {visible.map((item) => <TouchableOpacity key={item.id} onPress={() => toggle(item.id)} style={[styles.item, item.done && styles.itemDone]}><Text style={styles.time}>{item.time}</Text><View style={styles.itemBody}><Text style={[styles.itemTitle, item.done && styles.line]}>{item.title}</Text><Text style={styles.itemMeta}>{item.category} · lembrete ativo</Text></View><View style={[styles.badge, item.done && styles.badgeDone]}><Text style={styles.badgeText}>{item.done ? "Feito" : item.category}</Text></View></TouchableOpacity>)}
+      </>}
+      {tab === "Calendário" && <View style={styles.card}><Text style={styles.sectionTitle}>Calendário mensal</Text><Text style={styles.cardCopy}>Visualize compromissos por dia, repita rotinas e mova tarefas por arrastar e soltar.</Text><View style={styles.calendarGrid}>{Array.from({ length: 30 }, (_, index) => <View key={index} style={[styles.calendarDay, [3, 8, 14, 21].includes(index) && styles.calendarMarked]}><Text style={styles.calendarText}>{index + 1}</Text></View>)}</View></View>}
+      {tab === "Insights" && <><View style={styles.card}><Text style={styles.sectionTitle}>Insights de produtividade</Text><Text style={styles.cardCopy}>Você reservou 2h30 para foco esta semana. Melhor período: 09:00–11:00.</Text></View><View style={styles.stats}><View style={styles.stat}><Text style={styles.statNumber}>84%</Text><Text style={styles.statLabel}>concluído</Text></View><View style={styles.stat}><Text style={styles.statNumber}>12</Text><Text style={styles.statLabel}>dias de foco</Text></View></View></>}
+      {tab === "Ajustes" && <View style={styles.card}><Text style={styles.sectionTitle}>Configurações</Text><Text style={styles.cardCopy}>Notificações, categorias, tema, privacidade e sincronização ficam organizados aqui.</Text><TouchableOpacity style={styles.primaryButton}><Text style={styles.primaryButtonText}>Configurar lembretes</Text></TouchableOpacity></View>}
+    </ScrollView><View style={styles.nav}>{(["Hoje", "Calendário", "Insights", "Ajustes"] as const).map((item) => <TouchableOpacity key={item} onPress={() => setTab(item)} style={[styles.navItem, tab === item && styles.navActive]}><Text style={[styles.navText, tab === item && styles.navTextActive]}>{item}</Text></TouchableOpacity>)}</View>
+  </SafeAreaView>;
+}
+
+const styles = StyleSheet.create({ page:{flex:1,backgroundColor:"#080c1d"},topbar:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",paddingHorizontal:20,paddingTop:14,paddingBottom:18,borderBottomWidth:1,borderBottomColor:"#20294b"},eyebrow:{color:"#a78bfa",fontSize:10,fontWeight:"900",letterSpacing:1.8},title:{color:"#fff",fontSize:25,fontWeight:"800",marginTop:4},avatar:{width:42,height:42,borderRadius:14,backgroundColor:"#7c3aed",alignItems:"center",justifyContent:"center"},avatarText:{color:"#fff",fontWeight:"900"},content:{padding:16,paddingBottom:96},week:{flexDirection:"row",gap:5,marginBottom:16},day:{flex:1,alignItems:"center",paddingVertical:9,borderRadius:12,backgroundColor:"#121936"},activeDay:{backgroundColor:"#7c3aed"},dayText:{color:"#94a3b8",fontSize:9,fontWeight:"800"},dayNumber:{color:"#fff",fontSize:14,fontWeight:"800",marginTop:3},activeDayText:{color:"#fff"},hero:{padding:16,borderRadius:20,backgroundColor:"#17143a",borderWidth:1,borderColor:"#4c3b9a"},heroTitle:{color:"#fff",fontSize:20,fontWeight:"800"},heroCopy:{color:"#c4b5fd",fontSize:12,marginTop:6},progressTrack:{height:8,borderRadius:8,backgroundColor:"#27234f",marginTop:14,overflow:"hidden"},progress:{height:"100%",backgroundColor:"#22d3ee",borderRadius:8},search:{marginTop:16,padding:13,borderRadius:14,backgroundColor:"#111934",color:"#fff",borderWidth:1,borderColor:"#263256"},sectionHeader:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginTop:21,marginBottom:8},sectionTitle:{color:"#fff",fontSize:16,fontWeight:"800"},link:{color:"#a78bfa",fontWeight:"800"},item:{flexDirection:"row",alignItems:"center",gap:12,padding:13,marginTop:8,borderRadius:16,backgroundColor:"#101832"},itemDone:{opacity:.62},time:{color:"#c4b5fd",fontWeight:"900",fontSize:12,width:42},itemBody:{flex:1},itemTitle:{color:"#f8fafc",fontWeight:"800",fontSize:14},line:{textDecorationLine:"line-through"},itemMeta:{color:"#94a3b8",fontSize:11,marginTop:3},badge:{paddingHorizontal:8,paddingVertical:5,borderRadius:99,backgroundColor:"#332765"},badgeDone:{backgroundColor:"#0f766e"},badgeText:{color:"#e9d5ff",fontWeight:"800",fontSize:9},card:{padding:18,borderRadius:20,backgroundColor:"#101832",borderWidth:1,borderColor:"#263256"},cardCopy:{color:"#a8b4d0",lineHeight:20,marginTop:8},calendarGrid:{flexDirection:"row",flexWrap:"wrap",gap:7,marginTop:18},calendarDay:{width:"12%",aspectRatio:1,alignItems:"center",justifyContent:"center",borderRadius:10,backgroundColor:"#17213f"},calendarMarked:{backgroundColor:"#7c3aed"},calendarText:{color:"#fff",fontSize:11,fontWeight:"700"},stats:{flexDirection:"row",gap:10,marginTop:12},stat:{flex:1,padding:17,borderRadius:17,backgroundColor:"#17143a"},statNumber:{color:"#fff",fontSize:25,fontWeight:"900"},statLabel:{color:"#c4b5fd",fontSize:11,marginTop:4},primaryButton:{marginTop:18,backgroundColor:"#7c3aed",borderRadius:13,padding:13,alignItems:"center"},primaryButtonText:{color:"#fff",fontWeight:"900"},nav:{flexDirection:"row",padding:10,gap:6,borderTopWidth:1,borderTopColor:"#20294b",backgroundColor:"#0b1022"},navItem:{flex:1,paddingVertical:10,alignItems:"center",borderRadius:10},navActive:{backgroundColor:"#332765"},navText:{color:"#8491b4",fontSize:10,fontWeight:"800"},navTextActive:{color:"#fff"} });`;
+  return [
+    { filePath: "README.md", language: "markdown", content: `# ${title}\n\nAgenda eletrônica profissional criada no Studio BuildForge.` },
+    { filePath: "package.json", language: "json", content: JSON.stringify({ name: title.toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "agenda-eletronica", private: true, scripts: { start: "expo start", android: "expo start --android" }, dependencies: { expo: "latest", react: "latest", "react-native": "latest" } }, null, 2) },
+    { filePath: "App.tsx", language: "typescript", content: appSource },
+    { filePath: "app.json", language: "json", content: JSON.stringify({ expo: { name: title, slug: title.toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "agenda-eletronica" } }, null, 2) },
+    { filePath: "src/features/agenda.ts", language: "typescript", content: `export type AgendaCategory = "Foco" | "Estudo" | "Rotina" | "Pessoal";\nexport type AgendaAppointment = { id: string; title: string; startsAt: string; category: AgendaCategory; reminderEnabled: boolean; completed: boolean };` },
+    { filePath: "STUDIO_PRODUCT_STANDARD.md", language: "markdown", content: "# Agenda eletrônica profissional\n\nO produto precisa manter calendário, compromissos, criação e edição, lembretes, categorias, pesquisa, insights, configurações e navegação móvel. Toda edição solicitada pelo chat deve alterar arquivos e a prévia compatível." },
+  ];
+}
+
 export function studioStarterFiles(projectType: "website" | "application", name: string) {
   const title = name.replace(/[<>]/g, "").slice(0, 120);
   if (projectType === "website") return [
@@ -336,6 +386,7 @@ export function studioStarterFiles(projectType: "website" | "application", name:
     { filePath: "src/main.ts", language: "typescript", content: `import "./style.css";\n\nexport const projectName = "${title}";` },
     { filePath: "src/style.css", language: "css", content: `:root{font-family:Inter,system-ui,sans-serif;color:#f8fafc;background:#070b20}body{margin:0}main{max-width:720px;margin:0 auto;padding:18vh 24px}h1{font-size:clamp(2.5rem,9vw,5rem);margin:.4rem 0}.eyebrow{color:#a78bfa;text-transform:uppercase;letter-spacing:.16em;font-weight:700}button{background:#7c3aed;color:#fff;border:0;border-radius:12px;padding:12px 18px;font-weight:700}` },
   ];
+  if (isAgendaStudioProject(title)) return agendaApplicationStarterFiles(title);
   return [
     { filePath: "README.md", language: "markdown", content: `# ${title}\n\nAplicativo criado pelo Studio BuildForge.` },
     { filePath: "package.json", language: "json", content: JSON.stringify({ name: title.toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "studio-app", private: true, scripts: { start: "expo start", android: "expo start --android" }, dependencies: { expo: "latest", react: "latest", "react-native": "latest" } }, null, 2) },

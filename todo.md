@@ -162,6 +162,7 @@
 - [x] Corrigir o failed fetch ao criar projetos pelo Studio, incluindo agenda, com recuperação e mensagem de erro clara.
 - [x] Corrigir a resposta HTML inesperada ao abrir a Agenda no Studio e gerar uma prévia de agenda editável em vez da tela genérica.
 - [x] Adicionar exclusão confirmada de projetos diretamente no Studio, com atualização da lista e da prévia selecionada.
+- [x] Fazer pedidos simples de agenda eletrônica gerarem aplicativo profissional completo, com calendário, compromissos, lembretes, categorias, busca, estatísticas e configurações.
 - [ ] Validar manualmente em desktop e mobile o fluxo completo de Organizações: abrir pelo menu, listar membros, adicionar ou editar papel, remover membro e confirmar feedbacks ou erros visíveis.
 - [ ] Validar manualmente a Central de Notificações pelo menu em desktop e mobile, comprovando carregamento, estado vazio, estado de erro com tentar novamente e recuperação.
 - [x] Substituir erros técnicos de briefing no Studio por validação e orientação clara em português antes do envio.
