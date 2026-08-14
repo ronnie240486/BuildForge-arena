@@ -437,7 +437,7 @@ export const studioProjects = mysqlTable(
     ownerId: int("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 180 }).notNull(),
     projectType: varchar("project_type", { length: 24 }).notNull().default("website"),
-    framework: varchar("framework", { length: 40 }).notNull().default("react"),
+    framework: varchar("framework", { length: 160 }).notNull().default("react"),
     githubRepository: varchar("github_repository", { length: 320 }),
     githubBranch: varchar("github_branch", { length: 180 }).notNull().default("main"),
     previewToken: varchar("preview_token", { length: 96 }).notNull().unique(),

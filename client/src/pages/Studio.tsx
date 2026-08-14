@@ -8,6 +8,11 @@ import { useLocation } from "wouter";
 type Framework = "android" | "flutter" | "react_native";
 type StudioAlternative = { title: string; positioning: string; audience: string; coreFeatures: string[]; screens: string[]; differentiator: string; recommendedStack: string };
 
+function studioErrorMessage(message: string) {
+  if (message.includes("framework") || message.includes("too_big")) return "A tecnologia sugerida é muito longa para este projeto. Escolha outra proposta ou simplifique o campo Tecnologia.";
+  return message;
+}
+
 const promptLibrary: Array<{ title: string; category: string; objective: string; framework: Framework; audience: string; idea: string }> = [
   { title: "Loja com catálogo", category: "Comércio", objective: "Vender produtos pelo celular", framework: "flutter", audience: "Pequenos lojistas e seus clientes", idea: "Aplicativo de loja com catálogo, busca, carrinho, pedidos, acompanhamento de entrega e painel de administração." },
   { title: "Agenda de serviços", category: "Serviços", objective: "Organizar horários e atendimentos", framework: "flutter", audience: "Profissionais autônomos e clientes", idea: "Aplicativo para agendar serviços com agenda disponível, confirmação, lembretes, pagamentos e histórico de atendimentos." },
@@ -42,7 +47,7 @@ export default function StudioPage() {
   const studioProjects = trpc.buildforge.studio.projects.useQuery();
   const studioDetail = trpc.buildforge.studio.projectDetail.useQuery({ projectId: selectedStudioProject ?? 0 }, { enabled: Boolean(selectedStudioProject) });
   const utils = trpc.useUtils();
-  const createStudioProject = trpc.buildforge.studio.createProject.useMutation({ onSuccess: async (result) => { await utils.buildforge.studio.projects.invalidate(); setSelectedStudioProject(result.id); setStudioName(""); toast.success("Projeto criado. Você já pode conversar e editar os arquivos."); }, onError: (error) => toast.error(error.message) });
+  const createStudioProject = trpc.buildforge.studio.createProject.useMutation({ onSuccess: async (result) => { await utils.buildforge.studio.projects.invalidate(); setSelectedStudioProject(result.id); setStudioName(""); toast.success("Projeto criado. Você já pode conversar e editar os arquivos."); }, onError: (error) => toast.error(studioErrorMessage(error.message)) });
   const importGithub = trpc.buildforge.studio.importGithub.useMutation({ onSuccess: async (result) => { await Promise.all([utils.buildforge.studio.projectDetail.invalidate(), utils.buildforge.studio.projects.invalidate()]); toast.success(`${result.imported} arquivo(s) importado(s) de ${result.repository}.`); }, onError: (error) => toast.error(error.message) });
   const chatEdit = trpc.buildforge.studio.chatEdit.useMutation({ onSuccess: async (result) => { await utils.buildforge.studio.projectDetail.invalidate(); setPreviewRevision((current) => current + 1); setStudioChat(""); toast.success(`${result.changedFiles.length} arquivo(s) atualizado(s) pelo chat.`); }, onError: (error) => toast.error(error.message) });
   const generateAlternatives = trpc.buildforge.studio.alternatives.useMutation({ onSuccess: (result) => { setAlternatives(result.alternatives); toast.success("10 propostas profissionais foram preparadas."); }, onError: (error) => toast.error(error.message) });

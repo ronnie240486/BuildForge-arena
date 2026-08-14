@@ -138,5 +138,7 @@
 - [ ] Atualizar automaticamente o painel de prévia após alterações aplicadas pelo chat.
 - [ ] Gerar dez alternativas profissionais para cada ideia enviada ao Studio, com recursos, telas, público e diferenciais.
 - [ ] Permitir escolher uma ou combinar alternativas antes de criar o projeto, os arquivos e a prévia.
+- [ ] Aceitar tecnologias profissionais sugeridas pelo Studio sem bloquear textos válidos por tamanho curto.
+- [ ] Traduzir falhas de validação da criação do Studio para mensagens claras e acionáveis em português.
 - [ ] Adicionar em Configurações o token GitHub mascarado, cifrado e exclusivo do servidor.
 - [ ] Sincronizar automaticamente com GitHub os arquivos criados ou alterados pelo Studio quando houver token configurado.

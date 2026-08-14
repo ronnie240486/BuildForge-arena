@@ -500,7 +500,7 @@ export const buildforgeRouter = router({
       try { return await getStudioProjectDetail(actorFromUser(ctx.user), input.projectId); }
       catch (error) { throw toTrpcError(error); }
     }),
-    createProject: adminProcedure.input(z.object({ name: z.string().trim().min(2).max(180), projectType: z.enum(["website", "application"]), framework: z.string().trim().min(2).max(40) })).mutation(async ({ ctx, input }) => {
+    createProject: adminProcedure.input(z.object({ name: z.string().trim().min(2).max(180), projectType: z.enum(["website", "application"]), framework: z.string().trim().min(2).max(160) })).mutation(async ({ ctx, input }) => {
       try { return await createStudioProject({ actor: actorFromUser(ctx.user), ...input }); }
       catch (error) { throw toTrpcError(error); }
     }),
