@@ -7,3 +7,5 @@ A tela em branco ocorria porque a prévia de aplicativo React Native não possu�
 >A prévia permanece isolada da origem da plataforma. Ela permite scripts apenas dentro do documento temporário, sem acesso à origem do painel.
 
 A validação no navegador confirmou a renderização de 64 células e 24 peças. Também foi realizado um movimento válido de uma peça azul, após o qual o estado exibiu corretamente **"Vez das peças roxas"**.
+
+Em uma validação posterior, o chat atualizou o `App.tsx` do projeto **Damas Acessível — Jogue Para Todos** para indicar peças amarelas. A prévia passou a detectar essa preferência no conteúdo atualizado e exibiu as peças em amarelo, além de atualizar o texto de turno, placar e instruções para **peças amarelas**.
