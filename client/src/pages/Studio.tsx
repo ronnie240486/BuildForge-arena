@@ -54,7 +54,7 @@ export default function StudioPage() {
   const createStudioProject = trpc.buildforge.studio.createProject.useMutation({ onSuccess: async (result) => { await utils.buildforge.studio.projects.invalidate(); setSelectedStudioProject(result.id); setStudioName(""); toast.success("Projeto criado. Você já pode conversar e editar os arquivos."); }, onError: (error) => toast.error(studioErrorMessage(error.message)) });
   const importGithub = trpc.buildforge.studio.importGithub.useMutation({ onSuccess: async (result) => { await Promise.all([utils.buildforge.studio.projectDetail.invalidate(), utils.buildforge.studio.projects.invalidate()]); toast.success(`${result.imported} arquivo(s) importado(s) de ${result.repository}.`); }, onError: (error) => toast.error(error.message) });
   const syncToGithub = trpc.buildforge.studio.syncToGithub.useMutation({ onSuccess: async (result) => { await utils.buildforge.studio.projectDetail.invalidate(); toast.success(`${result.pushed} arquivo(s) enviado(s) para ${result.repository}.`); }, onError: (error) => toast.error(error.message) });
-  const chatEdit = trpc.buildforge.studio.chatEdit.useMutation({ onSuccess: async (result) => { await utils.buildforge.studio.projectDetail.invalidate(); setPreviewRevision((current) => current + 1); setStudioChat(""); toast.success(`${result.changedFiles.length} arquivo(s) atualizado(s) pelo chat.`); }, onError: (error) => toast.error(error.message) });
+  const chatEdit = trpc.buildforge.studio.chatEdit.useMutation({ onSuccess: async (result) => { await utils.buildforge.studio.projectDetail.invalidate(); setPreviewRevision(Date.now()); setStudioChat(""); toast.success(`${result.changedFiles.length} arquivo(s) atualizado(s) pelo chat.`); }, onError: (error) => toast.error(error.message) });
   const generateAlternatives = trpc.buildforge.studio.alternatives.useMutation({ onSuccess: (result) => { setAlternatives(result.alternatives); setSelectedAlternativeIndexes([]); toast.success("10 propostas profissionais foram preparadas."); }, onError: (error) => toast.error(error.message) });
   const generate = trpc.buildforge.studio.generateApp.useMutation({ onSuccess: (result) => { toast.success(`Projeto inicial criado com ${result.files.length} arquivo(s).`); setLocation("/projects"); }, onError: (error) => toast.error(error.message) });
   const migrate = trpc.buildforge.studio.planMigration.useMutation({ onSuccess: (result) => { setPlan(result.plan); toast.success(`Plano criado por ${result.model}.`); }, onError: (error) => toast.error(error.message) });
@@ -63,11 +63,19 @@ export default function StudioPage() {
   const modelOptions = models.data?.models ?? [];
   const selectedStudioFile = studioDetail.data?.files.find((file) => file.filePath === selectedFilePath) ?? studioDetail.data?.files[0];
   useEffect(() => {
-    const iframe = document.querySelector<HTMLIFrameElement>("iframe[title^='Prévia de']");
-    if (!iframe) return;
-    iframe.setAttribute("sandbox", "allow-scripts");
-    iframe.src = iframe.src;
-  }, [previewRevision, studioDetail.data?.project.previewToken]);
+    const refreshPreviewIframe = (iframe: HTMLIFrameElement) => {
+      const source = iframe.getAttribute("src");
+      if (!source || iframe.dataset.studioPreviewSource === source) return;
+      iframe.dataset.studioPreviewSource = source;
+      iframe.setAttribute("sandbox", "allow-scripts");
+      iframe.src = source;
+    };
+    const refreshAll = () => document.querySelectorAll<HTMLIFrameElement>("iframe[title^='Prévia de']").forEach(refreshPreviewIframe);
+    refreshAll();
+    const observer = new MutationObserver(refreshAll);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
   const frameworkSelect = <select value={framework} onChange={(event) => setFramework(event.target.value as Framework)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="flutter">Flutter</option><option value="android">Android nativo</option><option value="react_native">React Native</option></select>;
 
   return <div className="mx-auto max-w-6xl space-y-6 pb-8"><header><p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-500">Studio IA profissional</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Studio de aplicativos e websites</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-400">Comece com uma ideia, crie um app ou website, acompanhe arquivos e refine o projeto pelo chat. Todo resultado continua revisável antes de entrar na fila de build.</p></header><div className="grid grid-cols-2 rounded-xl border border-slate-200 bg-white p-1 md:grid-cols-4 dark:border-slate-800 dark:bg-slate-950"><button onClick={() => setTab("workspace")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${tab === "workspace" ? "bg-violet-600 text-white" : "text-slate-500"}`}>Meus projetos</button><button onClick={() => setTab("guide")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${tab === "guide" ? "bg-violet-600 text-white" : "text-slate-500"}`}>Orientar ideia</button><button onClick={() => setTab("generate")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${tab === "generate" ? "bg-violet-600 text-white" : "text-slate-500"}`}>Gerar aplicativo</button><button onClick={() => setTab("migrate")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${tab === "migrate" ? "bg-violet-600 text-white" : "text-slate-500"}`}>Planejar migração</button></div>
