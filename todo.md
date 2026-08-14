@@ -156,4 +156,5 @@
 - [x] Impedir que o Studio confirme alterações de chat sem persistir arquivos modificados e atualizar a prévia correspondente.
 - [x] Fazer projetos de aplicativo abrirem primeiro a prévia temporária editável no Studio, sem iniciar build automaticamente, e refletirem alterações antes do envio à fila.
 - [x] Substituir o modelo fixo de damas por uma prévia com configuração visual completa persistida pelo chat.
+- [x] Aplicar a proposta Damas dos Reinos na prévia com menu competitivo, ranking, modos, torneios, espectador e replays navegáveis.
 - [x] Substituir erros técnicos de briefing no Studio por validação e orientação clara em português antes do envio.

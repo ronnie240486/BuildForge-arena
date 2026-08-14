@@ -34,6 +34,14 @@ describe("prévia do Studio", () => {
     expect(html).toContain("#e5e7eb");
   });
 
+  it("mostra os modos competitivos quando a proposta inclui ELO, torneio e espectador", () => {
+    const html = createStudioPreviewDocument({ project: { name: "Damas dos Reinos", projectType: "application", framework: "React Native" }, files: [{ filePath: "studio-preview.json", language: "json", content: '{"checkers":{"mode":"competitive","theme":"medieval"}}' }] });
+
+    expect(html).toContain("Ranking ELO");
+    expect(html).toContain("Copa dos Reinos");
+    expect(html).toContain("Arena ao vivo");
+  });
+
   it("mantém a prévia HTML comum para projetos que não são jogos de damas", () => {
     const html = createStudioPreviewDocument({ project: { name: "Agenda", projectType: "website", framework: "React" }, files: [{ filePath: "index.html", language: "html", content: "<html><head></head><body><div id=\"app\"></div></body></html>" }, { filePath: "src/main.ts", language: "typescript", content: "root.innerHTML = `<main>Agenda</main>`" }] });
 

@@ -59,6 +59,12 @@ describe("BuildForge domain rules", () => {
     expect(preference?.content).toContain('"board": "marble"');
   });
 
+  it("persiste o modo competitivo para propostas com ranking e torneios", () => {
+    const preference = studioPreviewPreferenceFile("crie matchmaking com ELO, torneios e modo espectador", []);
+
+    expect(preference?.content).toContain('"mode": "competitive"');
+  });
+
   it("não confirma arquivos idênticos como alterações do Studio", () => {
     const existing = [{ filePath: "App.tsx", language: "typescript", content: "export default function App() { return null; }" }];
     const changes = materialStudioFileChanges(existing, [...existing, { filePath: "README.md", language: "markdown", content: "# Atualizado" }]);
