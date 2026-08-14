@@ -145,6 +145,6 @@
 - [x] Adicionar botão manual Enviar para GitHub com estado de token, repositório e resultado do envio.
 - [x] Adicionar em Configurações o token GitHub mascarado, cifrado e exclusivo do servidor.
 - [x] Sincronizar automaticamente com GitHub os arquivos criados ou alterados pelo Studio quando houver token configurado.
-- [ ] Auditar o estado local e remoto do repositório GitHub BuildForge e enviar todas as alterações pendentes confirmadas.
+- [x] Auditar o estado local e remoto do repositório GitHub BuildForge e enviar todas as alterações pendentes confirmadas.
 - [x] Adicionar filtro por cliente aos Relatórios com dados reais e validação automatizada.
 - [x] Criar cobertura automatizada específica para autorização da configuração GitHub por projeto e das APIs de organizações e membros.
