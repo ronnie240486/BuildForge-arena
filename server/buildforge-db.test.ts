@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { strToU8, zipSync } from "fflate";
-import { canManageOwnedResource, detectZipFramework, inferFramework, isPlatformAdmin, studioPreviewPreferenceFile, studioStarterFiles } from "./buildforge-db";
+import { canManageOwnedResource, detectZipFramework, inferFramework, isPlatformAdmin, materialStudioFileChanges, studioPreviewPreferenceFile, studioProductStandard, studioStarterFiles } from "./buildforge-db";
 
 describe("BuildForge domain rules", () => {
   it("identifica as stacks conhecidas a partir de referências de projeto", () => {
@@ -49,5 +49,17 @@ describe("BuildForge domain rules", () => {
     expect(preference?.filePath).toBe("studio-preview.json");
     expect(preference?.content).toContain('"pieceColor": "pink"');
     expect(preference?.content).toContain('"theme": "medieval"');
+  });
+
+  it("não confirma arquivos idênticos como alterações do Studio", () => {
+    const existing = [{ filePath: "App.tsx", language: "typescript", content: "export default function App() { return null; }" }];
+    const changes = materialStudioFileChanges(existing, [...existing, { filePath: "README.md", language: "markdown", content: "# Atualizado" }]);
+
+    expect(changes).toEqual([{ filePath: "README.md", language: "markdown", content: "# Atualizado" }]);
+  });
+
+  it("define padrões profissionais específicos para jogos e websites", () => {
+    expect(studioProductStandard("application").content).toContain("seleção de nível ou modo");
+    expect(studioProductStandard("website").content).toContain("proposta de valor clara");
   });
 });
