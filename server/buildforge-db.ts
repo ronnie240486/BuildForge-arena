@@ -323,16 +323,20 @@ export async function saveBrandingConfig(input: { actor: PlatformActor; brandNam
   return { success: true };
 }
 
-function studioStarterFiles(projectType: "website" | "application", name: string) {
+export function studioStarterFiles(projectType: "website" | "application", name: string) {
   const title = name.replace(/[<>]/g, "").slice(0, 120);
   if (projectType === "website") return [
-    { filePath: "index.html", language: "html", content: `<!doctype html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${title}</title><script type="module" src="/src/main.ts"></script></head><body><div id="app"></div></body></html>` },
-    { filePath: "src/main.ts", language: "typescript", content: `import "./style.css";\ndocument.querySelector<HTMLDivElement>("#app")!.innerHTML = \`<main><p class="eyebrow">Projeto Studio</p><h1>${title}</h1><p>Descreva ao chat o que quer mudar nesta página.</p><button>Começar</button></main>\`;` },
+    { filePath: "README.md", language: "markdown", content: `# ${title}\n\nWebsite criado no Studio BuildForge.` },
+    { filePath: "package.json", language: "json", content: JSON.stringify({ name: title.toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "studio-site", private: true, scripts: { dev: "vite", build: "vite build" }, dependencies: {}, devDependencies: { vite: "latest", typescript: "latest" } }, null, 2) },
+    { filePath: "index.html", language: "html", content: `<!doctype html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${title}</title><script type="module" src="/src/main.ts"></script></head><body><div id="app"><main><p class="eyebrow">Projeto Studio</p><h1>${title}</h1><p>Descreva ao chat o que quer mudar nesta página.</p><button>Começar</button></main></div></body></html>` },
+    { filePath: "src/main.ts", language: "typescript", content: `import "./style.css";\n\nexport const projectName = "${title}";` },
     { filePath: "src/style.css", language: "css", content: `:root{font-family:Inter,system-ui,sans-serif;color:#f8fafc;background:#070b20}body{margin:0}main{max-width:720px;margin:0 auto;padding:18vh 24px}h1{font-size:clamp(2.5rem,9vw,5rem);margin:.4rem 0}.eyebrow{color:#a78bfa;text-transform:uppercase;letter-spacing:.16em;font-weight:700}button{background:#7c3aed;color:#fff;border:0;border-radius:12px;padding:12px 18px;font-weight:700}` },
   ];
   return [
-    { filePath: "README.md", language: "markdown", content: `# ${title}\n\nProjeto de aplicativo criado pelo Studio BuildForge.` },
-    { filePath: "src/App.tsx", language: "typescript", content: `export default function App(){ return <main><h1>${title}</h1><p>Peça ao chat para criar ou mudar telas.</p></main>; }` },
+    { filePath: "README.md", language: "markdown", content: `# ${title}\n\nAplicativo criado pelo Studio BuildForge.` },
+    { filePath: "package.json", language: "json", content: JSON.stringify({ name: title.toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "studio-app", private: true, scripts: { start: "expo start", android: "expo start --android" }, dependencies: { expo: "latest", react: "latest", "react-native": "latest" } }, null, 2) },
+    { filePath: "App.tsx", language: "typescript", content: `import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";\n\nexport default function App(){ return <SafeAreaView style={styles.page}><View style={styles.card}><Text style={styles.eyebrow}>PROJETO STUDIO</Text><Text style={styles.title}>${title}</Text><Text style={styles.copy}>Peça ao chat para criar ou mudar telas, recursos e navegação.</Text><TouchableOpacity style={styles.button}><Text style={styles.buttonText}>Começar</Text></TouchableOpacity></View></SafeAreaView>; }\n\nconst styles=StyleSheet.create({page:{flex:1,backgroundColor:"#070b20",justifyContent:"center",padding:24},card:{gap:16},eyebrow:{color:"#a78bfa",fontWeight:"700",letterSpacing:2},title:{color:"#fff",fontSize:38,fontWeight:"800"},copy:{color:"#cbd5e1",fontSize:16,lineHeight:24},button:{alignSelf:"flex-start",backgroundColor:"#7c3aed",paddingHorizontal:18,paddingVertical:12,borderRadius:12},buttonText:{color:"#fff",fontWeight:"700"}});` },
+    { filePath: "app.json", language: "json", content: JSON.stringify({ expo: { name: title, slug: title.toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "studio-app" } }, null, 2) },
   ];
 }
 
@@ -354,7 +358,7 @@ export async function createStudioProject(input: { actor: PlatformActor; name: s
   const name = input.name.trim().slice(0, 180);
   if (name.length < 2) throw new Error("Informe o nome do projeto.");
   const previewToken = randomBytes(24).toString("hex");
-  const [result] = await db.insert(studioProjects).values({ ownerId: input.actor.id, name, projectType: input.projectType, framework: input.framework.trim().slice(0, 40) || "react", previewToken });
+  const [result] = await db.insert(studioProjects).values({ ownerId: input.actor.id, name, projectType: input.projectType, framework: input.framework.trim().slice(0, 160) || "react", previewToken });
   const studioProjectId = Number(result.insertId);
   const files = studioStarterFiles(input.projectType, name);
   await db.insert(studioFiles).values(files.map((file) => ({ studioProjectId, ...file })));
@@ -439,6 +443,19 @@ async function syncStudioFilesToGithub(db: NonNullable<Awaited<ReturnType<typeof
     pushed += 1;
   }
   return { status: "synced" as const, pushed };
+}
+
+export async function syncStudioProjectToGithub(input: { actor: PlatformActor; projectId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const project = await assertStudioProjectAccess(db, input.actor, input.projectId);
+  if (!project.githubRepository) throw new Error("Configure ou importe um repositório GitHub antes de enviar os arquivos.");
+  const files = await db.select({ filePath: studioFiles.filePath, content: studioFiles.content }).from(studioFiles).where(eq(studioFiles.studioProjectId, project.id));
+  const sync = await syncStudioFilesToGithub(db, project, files);
+  if (sync.status === "awaiting_token") throw new Error("Configure o GitHub Token em Configurações antes de enviar os arquivos.");
+  await db.insert(studioMessages).values({ studioProjectId: project.id, authorId: input.actor.id, role: "system", content: `${sync.pushed} arquivo(s) enviado(s) manualmente ao GitHub.`, changedFiles: files.map((file) => file.filePath) });
+  await addAuditLog({ actorId: input.actor.id, action: "studio.github_manual_sync", entityType: "studio_project", entityId: String(project.id), metadata: { repository: project.githubRepository, branch: project.githubBranch, pushed: sync.pushed } });
+  return { ...sync, repository: project.githubRepository, branch: project.githubBranch };
 }
 
 export async function applyStudioChatEdit(input: { actor: PlatformActor; projectId: number; message: string; preferredModel?: string }) {

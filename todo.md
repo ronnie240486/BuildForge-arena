@@ -107,38 +107,44 @@
 - [x] Criar configuração segura de provedores de IA e campos de chave para Gemini, Claude e ChatGPT, exclusivos do administrador.
 - [x] Exibir em Configurações os campos mascarados e o estado de conexão de Gemini, Claude e ChatGPT, sem revelar valores de API.
 - [x] Persistir de forma criptografada as chaves de provedores inseridas pelo administrador e permitir removê-las a qualquer momento.
-- [ ] Fortalecer o Studio IA com seleção de modelo, biblioteca de prompts, perguntas de refinamento e sugestões profissionais antes da geração.
-- [ ] Criar biblioteca reutilizável de prompts profissionais no Studio IA com categorias, objetivo e refinamento guiado.
-- [ ] Estruturar os metadados, a pré-visualização e a aplicação consistente da biblioteca de prompts no refinamento guiado.
+- [x] Fortalecer o Studio IA com seleção de modelo, biblioteca de prompts, perguntas de refinamento e sugestões profissionais antes da geração.
+- [x] Criar biblioteca reutilizável de prompts profissionais no Studio IA com categorias, objetivo e refinamento guiado.
+- [x] Estruturar os metadados, a pré-visualização e a aplicação consistente da biblioteca de prompts no refinamento guiado.
 - [ ] Ampliar Relatórios com visão por cliente, projeto, status de build e período usando dados reais.
 - [ ] Implementar integração ampliada com GitHub, QR Code para releases e relatórios operacionais por cliente.
-- [ ] Criar a configuração de repositório, branch e webhook do GitHub por projeto, sem expor o segredo de assinatura.
+- [x] Criar a configuração de repositório, branch e webhook do GitHub por projeto, sem expor o segredo de assinatura.
 - [ ] Expor no painel a configuração GitHub por projeto, protegida por administração e com teste de autorização.
-- [ ] Criar a interface administrativa de marca branca para nome, cores e identidade visual da plataforma.
-- [ ] Implementar organizações, equipes, suporte por tickets e marca branca.
-- [ ] Criar a interface administrativa de organizações e equipes sobre as APIs já publicadas.
-- [ ] Implementar gerenciamento de membros da organização: listar, convidar/adicionar, definir papel e remover membro.
+- [x] Criar a interface administrativa de marca branca para nome, cores e identidade visual da plataforma.
+- [x] Implementar organizações, equipes, suporte por tickets e marca branca.
+- [x] Criar a interface administrativa de organizações e equipes sobre as APIs já publicadas.
+- [x] Implementar gerenciamento de membros da organização: listar, convidar/adicionar, definir papel e remover membro.
 - [ ] Adicionar APIs e testes de autorização para operações de equipes e membros.
 - [ ] Validar visualmente em desktop e mobile o fluxo completo de organizações e equipes.
-- [ ] Implementar página pública de status, monitoramento de workers e notificações configuráveis.
-- [ ] Criar painel administrativo de saúde de workers com heartbeat, Doctor, capacidade e alerta de indisponibilidade.
-- [ ] Criar central de notificações para visualizar eventos recentes de builds e status de entrega.
-- [ ] Adicionar a Central de Notificações ao menu do painel, respeitando permissões por papel e ferramenta.
+- [x] Implementar página pública de status, monitoramento de workers e notificações configuráveis.
+- [x] Criar painel administrativo de saúde de workers com heartbeat, Doctor, capacidade e alerta de indisponibilidade.
+- [x] Criar central de notificações para visualizar eventos recentes de builds e status de entrega.
+- [x] Adicionar a Central de Notificações ao menu do painel, respeitando permissões por papel e ferramenta.
 - [ ] Validar a navegação até Notificações pelo menu em desktop e mobile, incluindo estados de carregamento, vazio e erro.
-- [ ] Adicionar estado de erro e ação de tentar novamente na Central de Notificações.
-- [ ] Definir e implementar builds agendadas e automações recorrentes com arquitetura segura e gerenciável.
-- [ ] Criar agendamentos internos com horário, projeto, formato de build, ativação e histórico de execução.
-- [ ] Adicionar tela administrativa para criar, pausar e remover agendamentos de build.
-- [ ] Criar projetos de Studio para aplicativos e websites com arquivos, histórico de alterações e autoria persistida.
-- [ ] Importar repositórios GitHub no Studio com árvore lateral de arquivos e navegação segura do conteúdo.
-- [ ] Sincronizar automaticamente os projetos criados ou alterados pelo Studio com um repositório GitHub configurado.
-- [ ] Adicionar chat de criação que aplique alterações de arquivos a partir de pedidos em linguagem natural.
-- [ ] Adicionar prévia temporária ao vivo do website ou frontend gerado pelo Studio.
-- [ ] Exibir a URL temporária em um painel de prévia lado a lado com chat e arquivos no Studio.
-- [ ] Atualizar automaticamente o painel de prévia após alterações aplicadas pelo chat.
-- [ ] Gerar dez alternativas profissionais para cada ideia enviada ao Studio, com recursos, telas, público e diferenciais.
-- [ ] Permitir escolher uma ou combinar alternativas antes de criar o projeto, os arquivos e a prévia.
-- [ ] Aceitar tecnologias profissionais sugeridas pelo Studio sem bloquear textos válidos por tamanho curto.
-- [ ] Traduzir falhas de validação da criação do Studio para mensagens claras e acionáveis em português.
-- [ ] Adicionar em Configurações o token GitHub mascarado, cifrado e exclusivo do servidor.
-- [ ] Sincronizar automaticamente com GitHub os arquivos criados ou alterados pelo Studio quando houver token configurado.
+- [x] Adicionar estado de erro e ação de tentar novamente na Central de Notificações.
+- [x] Definir e implementar builds agendadas e automações recorrentes com arquitetura segura e gerenciável.
+- [x] Criar agendamentos internos com horário, projeto, formato de build, ativação e histórico de execução.
+- [x] Adicionar tela administrativa para criar, pausar e remover agendamentos de build.
+- [x] Criar projetos de Studio para aplicativos e websites com arquivos, histórico de alterações e autoria persistida.
+- [x] Importar repositórios GitHub no Studio com árvore lateral de arquivos, seleção e visualização segura do conteúdo.
+- [x] Sincronizar automaticamente os projetos criados ou alterados pelo Studio com um repositório GitHub configurado.
+- [x] Adicionar chat de criação que aplique alterações de arquivos a partir de pedidos em linguagem natural.
+- [x] Adicionar prévia temporária ao vivo do website ou frontend gerado pelo Studio.
+- [x] Exibir a URL temporária em um painel de prévia lado a lado com chat e arquivos no Studio.
+- [x] Atualizar automaticamente o painel de prévia após alterações aplicadas pelo chat.
+- [x] Gerar dez alternativas profissionais para cada ideia enviada ao Studio, com recursos, telas, público e diferenciais.
+- [x] Permitir escolher uma ou combinar alternativas antes de criar o projeto, os arquivos e a prévia.
+- [x] Aceitar tecnologias profissionais sugeridas pelo Studio sem bloquear textos válidos por tamanho curto.
+- [x] Traduzir falhas de validação da criação do Studio para mensagens claras e acionáveis em português.
+- [x] Mostrar no Studio a URL temporária sempre que um projeto estiver selecionado, com opção de copiar e abrir.
+- [x] Criar estrutura inicial completa de arquivos para projetos de website e aplicativo gerados pelo Studio.
+- [x] Adicionar botão manual Enviar para GitHub com estado de token, repositório e resultado do envio.
+- [x] Adicionar em Configurações o token GitHub mascarado, cifrado e exclusivo do servidor.
+- [x] Sincronizar automaticamente com GitHub os arquivos criados ou alterados pelo Studio quando houver token configurado.
+- [ ] Auditar o estado local e remoto do repositório GitHub BuildForge e enviar todas as alterações pendentes confirmadas.
+- [ ] Adicionar filtro por cliente aos Relatórios com dados reais e validação automatizada.
+- [ ] Criar cobertura automatizada específica para autorização da configuração GitHub por projeto e das APIs de organizações, equipes e membros.

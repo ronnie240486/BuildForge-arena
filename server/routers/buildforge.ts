@@ -73,6 +73,7 @@ import {
   saveGithubCredential,
   setAiFixStatus,
   setBuildScheduleEnabled,
+  syncStudioProjectToGithub,
   uploadArtifact,
   uploadProjectZip,
   uploadSigningKey,
@@ -506,6 +507,10 @@ export const buildforgeRouter = router({
     }),
     importGithub: adminProcedure.input(z.object({ projectId: z.number().int().positive(), repository: z.string().trim().min(3).max(320), branch: z.string().trim().max(180).optional() })).mutation(async ({ ctx, input }) => {
       try { return await importStudioGithubRepository({ actor: actorFromUser(ctx.user), ...input }); }
+      catch (error) { throw toTrpcError(error); }
+    }),
+    syncToGithub: adminProcedure.input(z.object({ projectId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      try { return await syncStudioProjectToGithub({ actor: actorFromUser(ctx.user), ...input }); }
       catch (error) { throw toTrpcError(error); }
     }),
     chatEdit: adminProcedure.input(z.object({ projectId: z.number().int().positive(), message: z.string().trim().min(3).max(6000), preferredModel: z.string().trim().max(160).optional() })).mutation(async ({ ctx, input }) => {
