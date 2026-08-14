@@ -1692,22 +1692,38 @@ export async function generateStudioAlternatives(input: { actor: PlatformActor; 
 }
 
 export async function generateStarterApp(input: { actor: PlatformActor; name: string; framework: "android" | "flutter" | "react_native"; prompt: string }) {
-  const model = await chooseBuildForgeModel();
-  const response = await invokeLLM({
-    model,
-    maxTokens: 8000,
-    messages: [
-      { role: "system", content: "Você cria um projeto inicial móvel seguro e mínimo. Nunca inclua segredos, chaves ou dependências não oficiais. Retorne apenas arquivos essenciais que compilam como um esqueleto." },
-      { role: "user", content: `Crie um esqueleto ${input.framework} para o aplicativo ${input.name}. Requisito: ${input.prompt.slice(0, 6000)}. Produza no máximo 8 arquivos essenciais, sem binários e sem conteúdo superior a 12000 caracteres por arquivo.` },
-    ],
-    responseFormat: { type: "json_schema", json_schema: { name: "starter_mobile_app", strict: true, schema: { type: "object", properties: { projectName: { type: "string" }, framework: { type: "string", enum: ["android", "flutter", "react_native"] }, summary: { type: "string" }, files: { type: "array", minItems: 1, maxItems: 8, items: { type: "object", properties: { path: { type: "string" }, content: { type: "string" } }, required: ["path", "content"], additionalProperties: false } } }, required: ["projectName", "framework", "summary", "files"], additionalProperties: false } } },
+  const localBlueprint = (): StarterAppBlueprint => ({
+    projectName: input.name.trim(),
+    framework: input.framework,
+    summary: isAgendaStudioProject(input.name) ? "Agenda eletrônica profissional criada com calendário, compromissos, lembretes, busca, insights e configurações." : "Projeto inicial profissional criado localmente para revisão e edição no Studio.",
+    files: studioStarterFiles("application", input.name.trim()).map((file) => ({ path: file.filePath, content: file.content })),
   });
-  const content = response.choices[0]?.message.content;
-  if (typeof content !== "string") throw new Error("A IA não retornou um projeto utilizável.");
-  let blueprint: StarterAppBlueprint;
-  try { blueprint = JSON.parse(content) as StarterAppBlueprint; } catch { throw new Error("A IA retornou um projeto em formato inválido."); }
+  let model = "modelo local profissional";
+  let blueprint: StarterAppBlueprint = localBlueprint();
+
+  if (!isAgendaStudioProject(input.name) && !isAgendaStudioProject(input.prompt)) {
+    try {
+      model = await chooseBuildForgeModel();
+      const response = await invokeLLM({
+        model,
+        maxTokens: 8000,
+        messages: [
+          { role: "system", content: "Você cria um projeto inicial móvel profissional, seguro e editável. Inclua telas e fluxos essenciais compatíveis com o pedido, sem segredos, chaves ou dependências não oficiais. Retorne somente JSON conforme o contrato." },
+          { role: "user", content: `Crie um aplicativo ${input.framework} profissional chamado ${input.name}. Requisito: ${input.prompt.slice(0, 6000)}. Produza no máximo 8 arquivos essenciais, sem binários e sem conteúdo superior a 12000 caracteres por arquivo.` },
+        ],
+        responseFormat: { type: "json_schema", json_schema: { name: "starter_mobile_app", strict: true, schema: { type: "object", properties: { projectName: { type: "string" }, framework: { type: "string", enum: ["android", "flutter", "react_native"] }, summary: { type: "string" }, files: { type: "array", minItems: 1, maxItems: 8, items: { type: "object", properties: { path: { type: "string" }, content: { type: "string" } }, required: ["path", "content"], additionalProperties: false } } }, required: ["projectName", "framework", "summary", "files"], additionalProperties: false } } },
+      });
+      const content = response.choices[0]?.message.content;
+      if (typeof content !== "string") throw new Error("Resposta vazia do gerador.");
+      blueprint = JSON.parse(content) as StarterAppBlueprint;
+    } catch (error) {
+      console.warn("[Studio] Gerador indisponível; usando modelo profissional local.", error instanceof Error ? error.message : error);
+      model = "modelo local profissional (recuperação)";
+      blueprint = localBlueprint();
+    }
+  }
   const safeFiles = blueprint.files.slice(0, 8).map((file) => ({ path: file.path.replace(/^\/+/, "").replace(/\.\.(\/|\\)/g, ""), content: file.content.slice(0, 12000) })).filter((file) => file.path && file.content);
-  if (!safeFiles.length) throw new Error("A IA não retornou arquivos válidos.");
+  if (!safeFiles.length) throw new Error("Não foi possível preparar arquivos para este aplicativo. Tente novamente.");
   const created = await createProject({ actor: input.actor, name: input.name.trim(), description: blueprint.summary.slice(0, 5000), source: "zip", reference: `${blueprint.framework}-generated` });
   const archive = Buffer.from(zipSync(Object.fromEntries(safeFiles.map((file) => [file.path, strToU8(file.content)]))));
   await uploadProjectZip({ actor: input.actor, projectId: created.id, filename: `${safeFilename(input.name)}-starter.zip`, contentBase64: archive.toString("base64") });
