@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEffect } from "react";
 import { Bot, CheckCircle2, Copy, FileCode2, Github, Lightbulb, ListChecks, LoaderCircle, Route, Sparkles, Wand2 } from "lucide-react";
 import { Streamdown } from "streamdown";
 import { toast } from "sonner";
@@ -61,6 +62,12 @@ export default function StudioPage() {
   const useProfessionalPrompt = () => { if (!refinement) return; setPrompt(refinement.professionalPrompt); setTab("generate"); toast.success("Prompt profissional aplicado à geração."); };
   const modelOptions = models.data?.models ?? [];
   const selectedStudioFile = studioDetail.data?.files.find((file) => file.filePath === selectedFilePath) ?? studioDetail.data?.files[0];
+  useEffect(() => {
+    const iframe = document.querySelector<HTMLIFrameElement>("iframe[title^='Prévia de']");
+    if (!iframe) return;
+    iframe.setAttribute("sandbox", "allow-scripts");
+    iframe.src = iframe.src;
+  }, [previewRevision, studioDetail.data?.project.previewToken]);
   const frameworkSelect = <select value={framework} onChange={(event) => setFramework(event.target.value as Framework)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="flutter">Flutter</option><option value="android">Android nativo</option><option value="react_native">React Native</option></select>;
 
   return <div className="mx-auto max-w-6xl space-y-6 pb-8"><header><p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-500">Studio IA profissional</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Studio de aplicativos e websites</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-400">Comece com uma ideia, crie um app ou website, acompanhe arquivos e refine o projeto pelo chat. Todo resultado continua revisável antes de entrar na fila de build.</p></header><div className="grid grid-cols-2 rounded-xl border border-slate-200 bg-white p-1 md:grid-cols-4 dark:border-slate-800 dark:bg-slate-950"><button onClick={() => setTab("workspace")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${tab === "workspace" ? "bg-violet-600 text-white" : "text-slate-500"}`}>Meus projetos</button><button onClick={() => setTab("guide")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${tab === "guide" ? "bg-violet-600 text-white" : "text-slate-500"}`}>Orientar ideia</button><button onClick={() => setTab("generate")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${tab === "generate" ? "bg-violet-600 text-white" : "text-slate-500"}`}>Gerar aplicativo</button><button onClick={() => setTab("migrate")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${tab === "migrate" ? "bg-violet-600 text-white" : "text-slate-500"}`}>Planejar migração</button></div>

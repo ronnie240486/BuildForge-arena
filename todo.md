@@ -148,3 +148,4 @@
 - [x] Auditar o estado local e remoto do repositório GitHub BuildForge e enviar todas as alterações pendentes confirmadas.
 - [x] Adicionar filtro por cliente aos Relatórios com dados reais e validação automatizada.
 - [x] Criar cobertura automatizada específica para autorização da configuração GitHub por projeto e das APIs de organizações e membros.
+- [x] Corrigir a geração de jogo de damas no Studio para produzir uma prévia interativa, sem tela em branco, e permitir refinamentos pelo chat.

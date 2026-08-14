@@ -1,0 +1,9 @@
+# Validação da prévia de damas do Studio
+
+Em 14 de agosto de 2026, foi validado o projeto **Damas Clássicas — Plataforma de Torneios** criado pelo Studio.
+
+A tela em branco ocorria porque a prévia de aplicativo React Native não possuía um HTML navegável e o script inicial do tabuleiro continha um parêntese ausente. A rota de prévia agora identifica projetos de damas e entrega um tabuleiro HTML isolado, com 64 casas, 12 peças de cada cor, alternância de turno, movimentos diagonais, capturas por salto, promoção a dama e reinício de partida.
+
+>A prévia permanece isolada da origem da plataforma. Ela permite scripts apenas dentro do documento temporário, sem acesso à origem do painel.
+
+A validação no navegador confirmou a renderização de 64 células e 24 peças. Também foi realizado um movimento válido de uma peça azul, após o qual o estado exibiu corretamente **"Vez das peças roxas"**.
