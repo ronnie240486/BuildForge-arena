@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { strToU8, zipSync } from "fflate";
-import { canManageOwnedResource, detectZipFramework, inferFramework, isPlatformAdmin, materialStudioFileChanges, parseStudioEditPayload, studioPreviewPreferenceFile, studioProductStandard, studioStarterFiles, validateStudioAgentPreview } from "./buildforge-db";
+import { canManageOwnedResource, detectZipFramework, extractStudioProjectRename, inferFramework, isPlatformAdmin, materialStudioFileChanges, parseStudioEditPayload, studioPreviewPreferenceFile, studioProductStandard, studioStarterFiles, validateStudioAgentPreview } from "./buildforge-db";
 
 describe("BuildForge domain rules", () => {
   it("identifica as stacks conhecidas a partir de referências de projeto", () => {
@@ -152,6 +152,12 @@ describe("BuildForge domain rules", () => {
 
     expect(preference?.content).toContain('"primary": "black"');
     expect(preference?.content).toContain('"accent": "gold"');
+  });
+
+  it("reconhece pedidos diretos de renomeação sem usar o gerador externo", () => {
+    expect(extractStudioProjectRename("mude o nome da calculadora para Turbo Gold")) .toBe("Turbo Gold");
+    expect(extractStudioProjectRename("o título do app será Minha Calculadora")) .toBe("Minha Calculadora");
+    expect(extractStudioProjectRename("quero mudar as cores")) .toBeNull();
   });
 
   it("valida o plano do agente contra elementos reais da prévia antes de confirmar", () => {

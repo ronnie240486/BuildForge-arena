@@ -724,6 +724,18 @@ export function studioPreviewPreferenceFile(message: string, files: Array<{ file
   return { filePath: "studio-preview.json", language: "json", content: JSON.stringify({ ...withUniversal, checkers: { pieceColor: pieceColor ?? "blue", opponentColor: opponentColor ?? "violet", board: board ?? "classic", theme: theme ?? "classic", mode: mode ?? "classic", gameType: gameType ?? "checkers", dimensionalStyle: dimensionalStyle ?? "2d" } }, null, 2) };
 }
 
+export function extractStudioProjectRename(message: string) {
+  const patterns = [
+    /(?:mude|troque|altere|renomeie)\s+(?:o\s+)?nome(?:\s+d[oa]\s+(?:calculadora|app|aplicativo|projeto|website|site))?\s+(?:para|por)\s*["“]?([^"“”\n.!?]{2,80})/i,
+    /(?:nome|t[ií]tulo)(?:\s+d[oa]\s+(?:calculadora|app|aplicativo|projeto|website|site))?\s+(?:[ée]|ser[aá]|vai\s+ser)\s*["“]?([^"“”\n.!?]{2,80})/i,
+  ];
+  for (const pattern of patterns) {
+    const candidate = message.match(pattern)?.[1]?.trim().replace(/\s+(?:por\s+favor|pfv|obrigado|obrigada)$/i, "");
+    if (candidate && candidate.length >= 2 && candidate.length <= 80) return candidate;
+  }
+  return null;
+}
+
 export function materialStudioFileChanges(existingFiles: Array<{ filePath: string; language: string; content: string }>, candidates: Array<{ filePath: string; language: string; content: string }>) {
   const existingByPath = new Map(existingFiles.map((file) => [file.filePath, file]));
   const latestByPath = new Map<string, { filePath: string; language: string; content: string }>();
@@ -765,6 +777,16 @@ export async function applyStudioChatEdit(input: { actor: PlatformActor; project
   if (!db) throw new Error("Banco de dados indisponível.");
   const project = await assertStudioProjectAccess(db, input.actor, input.projectId);
   const files = await db.select().from(studioFiles).where(eq(studioFiles.studioProjectId, project.id)).orderBy(studioFiles.filePath);
+  const requestedName = extractStudioProjectRename(input.message);
+  if (requestedName) {
+    if (requestedName.localeCompare(project.name, "pt-BR", { sensitivity: "accent" }) === 0) throw new Error("Esse nome já está aplicado ao projeto e à prévia.");
+    await db.update(studioProjects).set({ name: requestedName, updatedAt: new Date() }).where(eq(studioProjects.id, project.id));
+    await db.insert(studioMessages).values({ studioProjectId: project.id, authorId: input.actor.id, role: "user", content: input.message.slice(0, 6000) });
+    const reply = `Nome atualizado para “${requestedName}”. A prévia será recarregada agora com o novo título.`;
+    await db.insert(studioMessages).values({ studioProjectId: project.id, authorId: input.actor.id, role: "assistant", content: reply, changedFiles: ["studio_projects.name"] });
+    await addAuditLog({ actorId: input.actor.id, action: "studio.rename", entityType: "studio_project", entityId: String(project.id), metadata: { previousName: project.name, name: requestedName } });
+    return { reply, changedFiles: ["studio_projects.name"], model: "renomeação determinística", sync: { status: "not_configured" as const, pushed: 0 } };
+  }
   const previewPreference = studioPreviewPreferenceFile(input.message, files);
   if (previewPreference) {
     const changed = materialStudioFileChanges(files, [previewPreference]);
