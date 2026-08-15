@@ -170,6 +170,9 @@
 - [x] Integrar de fato onboarding, persistência local e lembretes ao `App.tsx` e ao fluxo principal da Agenda gerada.
 - [x] Fazer a prévia da Agenda refletir planos, configurações e branding editados pelo chat, com navegação e estados reais.
 - [x] Validar visualmente e por testes o uso efetivo dos módulos comerciais da Agenda, não apenas a presença dos arquivos.
+- [x] Corrigir a criação de Calculadora no Studio com modelo profissional funcional, arquivos completos, operações reais e prévia navegável.
+- [x] Criar roteamento determinístico para pedidos básicos recorrentes, evitando respostas genéricas ou prévias vazias.
+- [x] Criar renderização visual por intenção no Studio para que pedidos de carrinho, avião e loja resultem em cenas e interfaces específicas na prévia.
 - [ ] Validar manualmente em desktop e mobile o fluxo completo de Organizações: abrir pelo menu, listar membros, adicionar ou editar papel, remover membro e confirmar feedbacks ou erros visíveis.
 - [ ] Validar manualmente a Central de Notificações pelo menu em desktop e mobile, comprovando carregamento, estado vazio, estado de erro com tentar novamente e recuperação.
 - [x] Substituir erros técnicos de briefing no Studio por validação e orientação clara em português antes do envio.

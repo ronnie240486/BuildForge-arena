@@ -85,4 +85,31 @@ describe("prévia do Studio", () => {
     expect(html).toContain("--p:#22c55e");
     expect(html).toContain("Marca personalizável");
   });
+
+  it("renderiza uma calculadora funcional com botões e histórico", () => {
+    const html = createStudioPreviewDocument({ project: { name: "Calculadora Científica", projectType: "application", framework: "React Native" }, files: [{ filePath: "App.tsx", language: "typescript", content: "Calculadora com operações básicas e científicas." }] });
+
+    expect(html).toContain("UTILITÁRIO FUNCIONAL");
+    expect(html).toContain("Histórico ativo");
+    expect(html).toContain("function press(k)");
+    expect(html).toContain("Modo científico");
+  });
+
+  it("renderiza uma loja com catálogo, carrinho e checkout em vez do painel comercial genérico", () => {
+    const html = createStudioPreviewDocument({ project: { name: "Loja Casa Aurora", projectType: "application", framework: "React Native" }, files: [{ filePath: "App.tsx", language: "typescript", content: "Loja completa com catálogo, produto e checkout." }] });
+
+    expect(html).toContain("COMÉRCIO MOBILE");
+    expect(html).toContain("Seu carrinho");
+    expect(html).toContain("Ir para pagamento");
+  });
+
+  it("renderiza cenas interativas próprias para carrinho e avião decolando", () => {
+    const car = createStudioPreviewDocument({ project: { name: "Carrinho Vermelho", projectType: "application", framework: "React Native" }, files: [{ filePath: "App.tsx", language: "typescript", content: "Um carro em movimento na pista." }] });
+    const plane = createStudioPreviewDocument({ project: { name: "Avião decolando na pista", projectType: "application", framework: "React Native" }, files: [{ filePath: "App.tsx", language: "typescript", content: "Cena de aeronave e decolagem." }] });
+
+    expect(car).toContain("CARRO EM MOVIMENTO");
+    expect(car).toContain("Acelerar carro");
+    expect(plane).toContain("AVIÃO DECOLANDO");
+    expect(plane).toContain("Iniciar decolagem");
+  });
 });

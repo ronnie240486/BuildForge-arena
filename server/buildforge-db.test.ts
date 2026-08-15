@@ -44,9 +44,9 @@ describe("BuildForge domain rules", () => {
 		expect(application.find((file) => file.filePath === "App.tsx")?.content).toContain("SafeAreaView");
 	});
 
-	it("cria uma agenda eletrônica profissional completa a partir de um pedido simples", () => {
-		const agenda = studioStarterFiles("application", "Agenda Eletrônica Top");
-		const app = agenda.find((file) => file.filePath === "App.tsx")?.content ?? "";
+		it("cria uma agenda eletrônica profissional completa a partir de um pedido simples", () => {
+			const agenda = studioStarterFiles("application", "Agenda Eletrônica Top");
+			const app = agenda.find((file) => file.filePath === "App.tsx")?.content ?? "";
 
 		expect(agenda.map((file) => file.filePath)).toEqual(expect.arrayContaining(["App.tsx", "src/features/agenda.ts", "STUDIO_PRODUCT_STANDARD.md", "src/services/localStore.ts", "src/services/reminders.ts", "src/features/subscription.ts", "src/screens/OnboardingScreen.tsx", "src/screens/PlansScreen.tsx", "docs/PRODUCTION_READINESS.md"]));
 		expect(app).toContain("Agenda de hoje");
@@ -56,8 +56,28 @@ describe("BuildForge domain rules", () => {
 		expect(app).toContain("scheduleReminder");
 		expect(app).toContain("Lembretes ativos");
 		expect(app).toContain("Insights de produtividade");
-		expect(app).toContain("Configurar lembretes");
-	});
+			expect(app).toContain("Configurar lembretes");
+		});
+
+		it("cria uma Calculadora funcional a partir de um pedido simples", () => {
+			const calculator = studioStarterFiles("application", "Calculadora Científica");
+			const app = calculator.find((file) => file.filePath === "App.tsx")?.content ?? "";
+
+			expect(calculator.map((file) => file.filePath)).toEqual(expect.arrayContaining(["App.tsx", "src/domain/calculator.ts", "src/services/historyStore.ts", "app.json"]));
+			expect(app).toContain("const press=");
+			expect(app).toContain("Histórico");
+			expect(calculator.find((file) => file.filePath === "src/domain/calculator.ts")?.content).toContain("Expressão inválida");
+		});
+
+		it("cria uma loja completa a partir de um pedido simples", () => {
+			const store = studioStarterFiles("application", "Loja Casa Aurora");
+			const app = store.find((file) => file.filePath === "App.tsx")?.content ?? "";
+
+			expect(store.map((file) => file.filePath)).toEqual(expect.arrayContaining(["App.tsx", "src/domain/catalog.ts", "src/services/cartStore.ts", "src/screens/CheckoutScreen.tsx", "docs/PAYMENT_INTEGRATION.md"]));
+			expect(app).toContain("Sacola");
+			expect(app).toContain("CheckoutScreen");
+			expect(store.find((file) => file.filePath === "src/services/cartStore.ts")?.content).toContain("AsyncStorage");
+		});
 
   it("persiste a preferência visual do tabuleiro a partir de pedidos do chat", () => {
     const preference = studioPreviewPreferenceFile("Crie um tabuleiro medieval e mude as peças azuis para rosa", []);
