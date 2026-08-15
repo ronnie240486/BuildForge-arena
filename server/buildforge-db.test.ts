@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { strToU8, zipSync } from "fflate";
-import { canManageOwnedResource, detectZipFramework, inferFramework, isPlatformAdmin, materialStudioFileChanges, parseStudioEditPayload, studioPreviewPreferenceFile, studioProductStandard, studioStarterFiles } from "./buildforge-db";
+import { canManageOwnedResource, detectZipFramework, inferFramework, isPlatformAdmin, materialStudioFileChanges, parseStudioEditPayload, studioPreviewPreferenceFile, studioProductStandard, studioStarterFiles, validateStudioAgentPreview } from "./buildforge-db";
 
 describe("BuildForge domain rules", () => {
   it("identifica as stacks conhecidas a partir de referências de projeto", () => {
@@ -147,10 +147,25 @@ describe("BuildForge domain rules", () => {
     expect(preference?.content).toContain('"car"');
   });
 
+  it("valida o plano do agente contra elementos reais da prévia antes de confirmar", () => {
+    const validation = validateStudioAgentPreview({
+      project: { name: "Loja Aurora", projectType: "application", framework: "react_native" },
+      existingFiles: [],
+      changedFiles: [{ filePath: "App.tsx", language: "typescript", content: "Catálogo profissional com carrinho e checkout." }],
+      previewChecks: ["Seu carrinho", "Ir para pagamento", "Elemento inexistente"],
+    });
+
+    expect(validation.previewReady).toBe(true);
+    expect(validation.verifiedChecks).toEqual(expect.arrayContaining(["Seu carrinho", "Ir para pagamento"]));
+    expect(validation.missingChecks).toContain("Elemento inexistente");
+  });
+
   it("recupera uma resposta válida mesmo quando vier dentro de bloco de código", () => {
-    const edit = parseStudioEditPayload('```json\n{"reply":"Pronto","files":[{"path":"App.tsx","language":"typescript","content":"export default 1"}]}\n```');
+    const edit = parseStudioEditPayload('```json\n{"reply":"Pronto","plan":["Atualizei a tela principal"],"previewChecks":["Título atualizado"],"files":[{"path":"App.tsx","language":"typescript","content":"export default 1"}]}\n```');
 
     expect(edit?.reply).toBe("Pronto");
+    expect(edit?.plan).toContain("Atualizei a tela principal");
+    expect(edit?.previewChecks).toContain("Título atualizado");
     expect(edit?.files[0]?.path).toBe("App.tsx");
   });
 

@@ -182,6 +182,7 @@
 - [x] Fazer todos os renderizadores de prévia consumirem preferências universais, impedindo confirmações sem efeito visual verificável.
 - [x] Fazer a Calculadora científica de corrida aplicar a cor escolhida pelo chat na faixa, botões, bordas, selo e fundo da prévia.
 - [x] Recarregar automaticamente a prévia embutida do Studio após cada alteração persistida e somente confirmar sucesso depois da atualização visual.
+- [x] Transformar o chat do Studio em fluxo agente: planejar telas e recursos, alterar múltiplos arquivos necessários e validar a prévia antes de confirmar a execução.
 - [ ] Validar manualmente em desktop e mobile o fluxo completo de Organizações: abrir pelo menu, listar membros, adicionar ou editar papel, remover membro e confirmar feedbacks ou erros visíveis.
 - [ ] Validar manualmente a Central de Notificações pelo menu em desktop e mobile, comprovando carregamento, estado vazio, estado de erro com tentar novamente e recuperação.
 - [x] Substituir erros técnicos de briefing no Studio por validação e orientação clara em português antes do envio.
