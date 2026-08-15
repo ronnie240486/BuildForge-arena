@@ -71,12 +71,15 @@ describe("BuildForge domain rules", () => {
 
 		it("cria uma loja completa a partir de um pedido simples", () => {
 			const store = studioStarterFiles("application", "Loja Casa Aurora");
+			const storeWebsite = studioStarterFiles("website", "Loja Casa Aurora");
 			const app = store.find((file) => file.filePath === "App.tsx")?.content ?? "";
 
 			expect(store.map((file) => file.filePath)).toEqual(expect.arrayContaining(["App.tsx", "src/domain/catalog.ts", "src/services/cartStore.ts", "src/screens/CheckoutScreen.tsx", "docs/PAYMENT_INTEGRATION.md"]));
 			expect(app).toContain("Sacola");
 			expect(app).toContain("CheckoutScreen");
 			expect(store.find((file) => file.filePath === "src/services/cartStore.ts")?.content).toContain("AsyncStorage");
+			expect(storeWebsite.map((file) => file.filePath)).toEqual(expect.arrayContaining(["src/main.ts", "src/data/catalog.ts", "src/services/cart.ts", "docs/WEB_CHECKOUT.md"]));
+			expect(storeWebsite.find((file) => file.filePath === "src/main.ts")?.content).toContain("Ir para checkout");
 		});
 
 		it("cria fontes específicas para delivery e formulário", () => {

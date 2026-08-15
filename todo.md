@@ -175,6 +175,7 @@
 - [x] Criar renderização visual por intenção no Studio para que pedidos de carrinho, avião e loja resultem em cenas e interfaces específicas na prévia.
 - [x] Criar prévias visuais específicas e interativas para pedidos de delivery e formulários/cadastros no Studio.
 - [x] Gerar arquivos iniciais profissionais de delivery e formulários, com dados, navegação e validação correspondentes.
+- [x] Gerar website de loja com catálogo, carrinho e checkout em arquivos próprios, sem usar o modelo comercial genérico.
 - [ ] Validar manualmente em desktop e mobile o fluxo completo de Organizações: abrir pelo menu, listar membros, adicionar ou editar papel, remover membro e confirmar feedbacks ou erros visíveis.
 - [ ] Validar manualmente a Central de Notificações pelo menu em desktop e mobile, comprovando carregamento, estado vazio, estado de erro com tentar novamente e recuperação.
 - [x] Substituir erros técnicos de briefing no Studio por validação e orientação clara em português antes do envio.
