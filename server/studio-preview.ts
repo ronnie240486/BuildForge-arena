@@ -1,4 +1,4 @@
-import { createMotionScenePreview, createStoreScenePreview } from "./studio-visual-scenes";
+import { createDeliveryScenePreview, createFormScenePreview, createMotionScenePreview, createStoreScenePreview } from "./studio-visual-scenes";
 
 type StudioPreviewFile = { filePath: string; content: string; language: string };
 type StudioPreview = { project: { name: string; projectType: string; framework: string }; files: StudioPreviewFile[] };
@@ -135,6 +135,14 @@ function isStoreProject(preview: StudioPreview) {
   return /\b(loja|store|shop|e-?commerce|cat[aá]logo|vendas?|produto|carrinho de compras|checkout)\b/i.test(previewSource(preview));
 }
 
+function isDeliveryProject(preview: StudioPreview) {
+  return /\b(delivery|entrega|restaurante|card[aá]pio|pedido de comida|lanchonete|pizzaria)\b/i.test(previewSource(preview));
+}
+
+function isFormProject(preview: StudioPreview) {
+  return /\b(formul[aá]rio|cadastro|inscri[cç][aã]o|contato|lead|or[cç]amento|solicita[cç][aã]o)\b/i.test(previewSource(preview));
+}
+
 function isCarProject(preview: StudioPreview) {
   return /\b(carrinho|carro|autom[oó]vel|ve[ií]culo|corrida|racing)\b/i.test(previewSource(preview));
 }
@@ -170,6 +178,8 @@ export function createStudioPreviewDocument(preview: StudioPreview) {
   if (isCheckersProject(preview)) return createCheckersPreviewDocument(preview.project.name, detectCheckersTheme(preview));
   if (isAgendaProject(preview)) return createAgendaPreviewDocument(preview.project.name, detectAgendaTheme(preview));
   if (isCalculatorProject(preview)) return createCalculatorPreviewDocument(preview.project.name);
+  if (isDeliveryProject(preview)) return createDeliveryScenePreview(preview.project.name);
+  if (isFormProject(preview)) return createFormScenePreview(preview.project.name);
   if (isStoreProject(preview)) return createStoreScenePreview(preview.project.name);
   if (isAirplaneProject(preview)) return createMotionScenePreview(preview.project.name, "plane");
   if (isCarProject(preview)) return createMotionScenePreview(preview.project.name, "car");

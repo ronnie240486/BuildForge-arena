@@ -79,6 +79,16 @@ describe("BuildForge domain rules", () => {
 			expect(store.find((file) => file.filePath === "src/services/cartStore.ts")?.content).toContain("AsyncStorage");
 		});
 
+		it("cria fontes específicas para delivery e formulário", () => {
+			const delivery = studioStarterFiles("application", "Delivery Sabor da Vila");
+			const form = studioStarterFiles("website", "Cadastro de clientes");
+
+			expect(delivery.map((file) => file.filePath)).toEqual(expect.arrayContaining(["App.tsx", "src/domain/menu.ts", "src/services/orderStore.ts", "src/screens/TrackingScreen.tsx"]));
+			expect(delivery.find((file) => file.filePath === "App.tsx")?.content).toContain("DELIVERY EM TEMPO REAL");
+			expect(form.map((file) => file.filePath)).toEqual(expect.arrayContaining(["src/main.ts", "src/services/leadValidation.ts", "STUDIO_PRODUCT_STANDARD.md"]));
+			expect(form.find((file) => file.filePath === "src/main.ts")?.content).toContain("lead-form");
+		});
+
   it("persiste a preferência visual do tabuleiro a partir de pedidos do chat", () => {
     const preference = studioPreviewPreferenceFile("Crie um tabuleiro medieval e mude as peças azuis para rosa", []);
 

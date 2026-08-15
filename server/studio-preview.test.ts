@@ -112,4 +112,14 @@ describe("prévia do Studio", () => {
     expect(plane).toContain("AVIÃO DECOLANDO");
     expect(plane).toContain("Iniciar decolagem");
   });
+
+  it("renderiza delivery com pedido e formulário com validação", () => {
+    const delivery = createStudioPreviewDocument({ project: { name: "Delivery Sabor da Vila", projectType: "application", framework: "React Native" }, files: [{ filePath: "App.tsx", language: "typescript", content: "Cardápio, pedidos e entregas." }] });
+    const form = createStudioPreviewDocument({ project: { name: "Cadastro de clientes", projectType: "website", framework: "React" }, files: [{ filePath: "src/main.ts", language: "typescript", content: "Formulário de inscrição com e-mail e validação." }] });
+
+    expect(delivery).toContain("DELIVERY EM TEMPO REAL");
+    expect(delivery).toContain("Enviar para preparo");
+    expect(form).toContain("FLUXO DE CADASTRO");
+    expect(form).toContain("Enviar cadastro");
+  });
 });

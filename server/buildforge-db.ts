@@ -339,6 +339,14 @@ function isStoreStudioProject(name: string) {
   return /loja|store|shop|e-?commerce|cat[aá]logo|vendas?|checkout|carrinho de compras/i.test(name);
 }
 
+function isDeliveryStudioProject(name: string) {
+  return /delivery|entrega|restaurante|card[aá]pio|pedido de comida|lanchonete|pizzaria/i.test(name);
+}
+
+function isFormStudioProject(name: string) {
+  return /formul[aá]rio|cadastro|inscri[cç][aã]o|contato|lead|or[cç]amento|solicita[cç][aã]o/i.test(name);
+}
+
 function agendaApplicationStarterFiles(title: string) {
   const appSource = `import { useEffect, useMemo, useState } from "react";
 	import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -477,12 +485,46 @@ function storeApplicationStarterFiles(title: string) {
   ];
 }
 
+function deliveryApplicationStarterFiles(title: string) {
+  const safeTitle = title.replace(/[<>]/g, "").slice(0, 120) || "Delivery Profissional";
+  const base = commercialStarterFiles("application", safeTitle).filter((file) => !["App.tsx", "STUDIO_PRODUCT_STANDARD.md"].includes(file.filePath));
+  const appName = JSON.stringify(safeTitle);
+  return [...base,
+    { filePath: "src/domain/menu.ts", language: "typescript", content: `export type MenuItem={id:string;name:string;price:number;emoji:string};export const menu:MenuItem[]=[{id:"burger",name:"Burger da Casa",price:32,emoji:"🍔"},{id:"bowl",name:"Bowl Tropical",price:29,emoji:"🥗"},{id:"pizza",name:"Pizza Forno",price:44,emoji:"🍕"}];export const money=(value:number)=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(value);` },
+    { filePath: "src/services/orderStore.ts", language: "typescript", content: `import AsyncStorage from "@react-native-async-storage/async-storage";import type{MenuItem}from"../domain/menu";const key="delivery-order-v1";export async function loadOrder():Promise<MenuItem[]>{try{return JSON.parse((await AsyncStorage.getItem(key))??"[]")}catch{return[]}}export async function saveOrder(items:MenuItem[]){await AsyncStorage.setItem(key,JSON.stringify(items))}` },
+    { filePath: "src/screens/TrackingScreen.tsx", language: "typescript", content: `import{StyleSheet,Text,View}from"react-native";export function TrackingScreen(){return <View style={s.card}><Text style={s.title}>Pedido em acompanhamento</Text><Text style={s.copy}>Recebido · Em preparo · A caminho</Text></View>}const s=StyleSheet.create({card:{padding:18,borderRadius:20,backgroundColor:"#fff"},title:{fontSize:18,fontWeight:"900",color:"#25150e"},copy:{color:"#8f6b58",marginTop:8}});` },
+    { filePath: "App.tsx", language: "typescript", content: `import{useEffect,useMemo,useState}from"react";import{SafeAreaView,ScrollView,StyleSheet,Text,TouchableOpacity,View}from"react-native";import{menu,MenuItem,money}from"./src/domain/menu";import{loadOrder,saveOrder}from"./src/services/orderStore";import{TrackingScreen}from"./src/screens/TrackingScreen";const appName=${appName};type Page="Cardápio"|"Pedido"|"Rastrear";export default function App(){const[page,setPage]=useState<Page>("Cardápio"),[order,setOrder]=useState<MenuItem[]>([]);useEffect(()=>{loadOrder().then(setOrder)},[]);const total=useMemo(()=>order.reduce((sum,item)=>sum+item.price,0),[order]);const add=(item:MenuItem)=>{const next=[...order,item];setOrder(next);saveOrder(next)};return <SafeAreaView style={s.page}><View style={s.header}><View><Text style={s.eyebrow}>DELIVERY EM TEMPO REAL</Text><Text style={s.title}>{appName}</Text></View><Text style={s.badge}>Pedido {order.length}</Text></View><ScrollView contentContainerStyle={s.body}>{page==="Cardápio"&&<>{menu.map(item=><View key={item.id} style={s.item}><Text style={s.emoji}>{item.emoji}</Text><View style={s.grow}><Text style={s.name}>{item.name}</Text><Text style={s.copy}>Preparo fresco · entrega estimada</Text></View><TouchableOpacity style={s.add} onPress={()=>add(item)}><Text style={s.addText}>+ {money(item.price)}</Text></TouchableOpacity></View>)}</>}{page==="Pedido"&&<View style={s.card}><Text style={s.name}>Confirmar pedido</Text>{order.length?order.map((item,index)=><View key={index} style={s.line}><Text style={s.copy}>{item.name}</Text><Text style={s.name}>{money(item.price)}</Text></View>):<Text style={s.copy}>Escolha itens no cardápio.</Text>}<Text style={s.total}>Total {money(total)}</Text></View>}{page==="Rastrear"&&<TrackingScreen/>}</ScrollView><View style={s.nav}>{(["Cardápio","Pedido","Rastrear"]as Page[]).map(item=><TouchableOpacity key={item} style={[s.tab,page===item&&s.tabOn]} onPress={()=>setPage(item)}><Text style={[s.tabText,page===item&&s.tabTextOn]}>{item}</Text></TouchableOpacity>)}</View></SafeAreaView>}const s=StyleSheet.create({page:{flex:1,backgroundColor:"#fff8ef"},header:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",padding:18},eyebrow:{color:"#d6511c",fontSize:10,fontWeight:"900",letterSpacing:1.3},title:{color:"#25150e",fontSize:26,fontWeight:"900",marginTop:5},badge:{padding:10,borderRadius:12,backgroundColor:"#f25f2f",color:"#fff",fontSize:11,fontWeight:"900"},body:{padding:15,paddingBottom:76},item:{flexDirection:"row",alignItems:"center",gap:11,padding:13,marginBottom:10,borderRadius:20,backgroundColor:"#fff",borderWidth:1,borderColor:"#f1ddce"},emoji:{fontSize:34},grow:{flex:1},name:{color:"#25150e",fontWeight:"900",fontSize:15},copy:{color:"#8f6b58",fontSize:12,marginTop:4},add:{padding:10,borderRadius:11,backgroundColor:"#f25f2f"},addText:{color:"#fff",fontSize:10,fontWeight:"900"},card:{padding:17,borderRadius:20,backgroundColor:"#fff",borderWidth:1,borderColor:"#f1ddce"},line:{flexDirection:"row",justifyContent:"space-between",paddingVertical:11,borderBottomWidth:1,borderBottomColor:"#f6e8dd"},total:{marginTop:16,color:"#25150e",fontSize:20,fontWeight:"900"},nav:{flexDirection:"row",padding:8,borderTopWidth:1,borderTopColor:"#f3ded0",backgroundColor:"#fff"},tab:{flex:1,alignItems:"center",padding:11,borderRadius:10},tabOn:{backgroundColor:"#fff0e6"},tabText:{color:"#8f6b58",fontSize:10,fontWeight:"800"},tabTextOn:{color:"#e54323"}});` },
+    { filePath: "docs/ORDER_BACKEND.md", language: "markdown", content: "# Backend de pedidos\n\nConecte o checkout ao servidor e registre a transição de estado do pedido usando webhooks do provedor de pagamento antes da publicação comercial." },
+    { filePath: "STUDIO_PRODUCT_STANDARD.md", language: "markdown", content: "# Padrão de Delivery\n\nPreservar cardápio, carrinho, confirmação, acompanhamento e histórico de pedidos." },
+  ];
+}
+
+function formStarterFiles(projectType: "website" | "application", title: string) {
+  const safeTitle = title.replace(/[<>]/g, "").slice(0, 120) || "Cadastro Profissional";
+  if (projectType === "application") {
+    const base = commercialStarterFiles("application", safeTitle).filter((file) => !["App.tsx", "STUDIO_PRODUCT_STANDARD.md"].includes(file.filePath));
+    return [...base,
+      { filePath: "src/services/leadValidation.ts", language: "typescript", content: `export type Lead={name:string;email:string;phone:string;interest:string;message:string};export function validateLead(lead:Lead){if(!lead.name.trim())return"Informe seu nome.";if(!/^\\S+@\\S+\\.\\S+$/.test(lead.email))return"Informe um e-mail válido.";if(!lead.interest)return"Selecione seu objetivo.";return null}` },
+      { filePath: "App.tsx", language: "typescript", content: `import{useState}from"react";import{Alert,SafeAreaView,ScrollView,StyleSheet,Text,TextInput,TouchableOpacity,View}from"react-native";import{validateLead}from"./src/services/leadValidation";export default function App(){const[name,setName]=useState(""),[email,setEmail]=useState(""),[phone,setPhone]=useState(""),[interest,setInterest]=useState(""),[message,setMessage]=useState("");const submit=()=>{const error=validateLead({name,email,phone,interest,message});if(error)return Alert.alert("Revise seus dados",error);Alert.alert("Cadastro recebido","Em produção, estes dados serão enviados ao serviço configurado.")};return <SafeAreaView style={s.page}><ScrollView contentContainerStyle={s.body}><Text style={s.eyebrow}>FLUXO DE CADASTRO</Text><Text style={s.title}>${safeTitle}</Text><Text style={s.copy}>Preencha os dados abaixo para continuar.</Text>{[["Nome completo",name,setName,"Seu nome"],["E-mail",email,setEmail,"voce@exemplo.com"],["Telefone",phone,setPhone,"(00) 00000-0000"],["Objetivo",interest,setInterest,"Quero conhecer a plataforma"],["Mensagem",message,setMessage,"Como podemos ajudar?"]].map(([label,value,setter,placeholder])=><View key={String(label)} style={s.field}><Text style={s.label}>{String(label)}</Text><TextInput value={String(value)} onChangeText={setter as (text:string)=>void} placeholder={String(placeholder)} placeholderTextColor="#8da8a2" style={s.input}/></View>)}<TouchableOpacity style={s.button} onPress={submit}><Text style={s.buttonText}>Enviar cadastro</Text></TouchableOpacity></ScrollView></SafeAreaView>}const s=StyleSheet.create({page:{flex:1,backgroundColor:"#f3f8f7"},body:{padding:22},eyebrow:{color:"#11786d",fontSize:10,fontWeight:"900",letterSpacing:1.5},title:{color:"#102723",fontSize:31,fontWeight:"900",marginTop:6},copy:{color:"#52706a",lineHeight:20,marginTop:8},field:{marginTop:16},label:{color:"#31554f",fontSize:12,fontWeight:"900",marginBottom:6},input:{padding:13,borderRadius:13,backgroundColor:"#fff",borderWidth:1,borderColor:"#c7dcd7",color:"#19352f"},button:{marginTop:20,padding:15,borderRadius:14,alignItems:"center",backgroundColor:"#11786d"},buttonText:{color:"#fff",fontWeight:"900"}});` },
+      { filePath: "STUDIO_PRODUCT_STANDARD.md", language: "markdown", content: "# Padrão de Cadastro\n\nValidar campos, apresentar mensagens acionáveis e conectar ao servidor antes de armazenar dados pessoais." },
+    ];
+  }
+  const base = commercialStarterFiles("website", safeTitle).filter((file) => !["src/main.ts", "STUDIO_PRODUCT_STANDARD.md"].includes(file.filePath));
+  return [...base,
+    { filePath: "src/main.ts", language: "typescript", content: `const root=document.getElementById("app");if(root)root.innerHTML=\`<main><p>FLUXO DE CADASTRO</p><h1>${safeTitle}</h1><form id="lead-form"><label>Nome<input required name="name"></label><label>E-mail<input required type="email" name="email"></label><label>Objetivo<select required name="interest"><option value="">Selecione</option><option>Conhecer a plataforma</option><option>Solicitar proposta</option></select></label><button>Enviar cadastro</button><output id="notice"></output></form></main>\`;document.getElementById("lead-form")?.addEventListener("submit",event=>{event.preventDefault();const form=event.currentTarget as HTMLFormElement;const notice=document.getElementById("notice");if(notice)notice.textContent=form.checkValidity()?"Cadastro recebido. Conecte seu CRM no servidor para produção.":"Preencha os campos obrigatórios."});` },
+    { filePath: "src/services/leadValidation.ts", language: "typescript", content: `export const validEmail=(email:string)=>/^\\S+@\\S+\\.\\S+$/.test(email);` },
+    { filePath: "STUDIO_PRODUCT_STANDARD.md", language: "markdown", content: "# Padrão de Formulário\n\nAplicar validação de campos, confirmação clara e integração segura ao servidor." },
+  ];
+}
+
 export function studioStarterFiles(projectType: "website" | "application", name: string) {
   const title = name.replace(/[<>]/g, "").slice(0, 120);
+  if (isFormStudioProject(title)) return formStarterFiles(projectType, title);
   if (projectType === "website") return commercialStarterFiles(projectType, title);
   if (isAgendaStudioProject(title)) return agendaApplicationStarterFiles(title);
   if (isCalculatorStudioProject(title)) return calculatorApplicationStarterFiles(title);
   if (isStoreStudioProject(title)) return storeApplicationStarterFiles(title);
+  if (isDeliveryStudioProject(title)) return deliveryApplicationStarterFiles(title);
   return commercialStarterFiles(projectType, title);
 }
 
@@ -1795,11 +1837,11 @@ export async function generateStudioAlternatives(input: { actor: PlatformActor; 
 }
 
 export async function generateStarterApp(input: { actor: PlatformActor; name: string; framework: "android" | "flutter" | "react_native"; prompt: string }) {
-  const useDeterministicStarter = isAgendaStudioProject(input.name) || isAgendaStudioProject(input.prompt) || isCalculatorStudioProject(input.name) || isCalculatorStudioProject(input.prompt) || isStoreStudioProject(input.name) || isStoreStudioProject(input.prompt);
+  const useDeterministicStarter = isAgendaStudioProject(input.name) || isAgendaStudioProject(input.prompt) || isCalculatorStudioProject(input.name) || isCalculatorStudioProject(input.prompt) || isStoreStudioProject(input.name) || isStoreStudioProject(input.prompt) || isDeliveryStudioProject(input.name) || isDeliveryStudioProject(input.prompt) || isFormStudioProject(input.name) || isFormStudioProject(input.prompt);
   const localBlueprint = (): StarterAppBlueprint => ({
     projectName: input.name.trim(),
     framework: input.framework,
-    summary: isAgendaStudioProject(input.name) || isAgendaStudioProject(input.prompt) ? "Agenda eletrônica profissional criada com calendário, compromissos, lembretes, busca, insights e configurações." : isCalculatorStudioProject(input.name) || isCalculatorStudioProject(input.prompt) ? "Calculadora profissional criada com operações, porcentagem, histórico persistente e interface móvel funcional." : isStoreStudioProject(input.name) || isStoreStudioProject(input.prompt) ? "Loja profissional criada com catálogo, carrinho persistente, checkout, pedidos e conta do cliente." : "Projeto inicial profissional criado localmente para revisão e edição no Studio.",
+    summary: isAgendaStudioProject(input.name) || isAgendaStudioProject(input.prompt) ? "Agenda eletrônica profissional criada com calendário, compromissos, lembretes, busca, insights e configurações." : isCalculatorStudioProject(input.name) || isCalculatorStudioProject(input.prompt) ? "Calculadora profissional criada com operações, porcentagem, histórico persistente e interface móvel funcional." : isStoreStudioProject(input.name) || isStoreStudioProject(input.prompt) ? "Loja profissional criada com catálogo, carrinho persistente, checkout, pedidos e conta do cliente." : isDeliveryStudioProject(input.name) || isDeliveryStudioProject(input.prompt) ? "Delivery profissional criado com cardápio, pedido persistente, confirmação e rastreamento." : isFormStudioProject(input.name) || isFormStudioProject(input.prompt) ? "Fluxo profissional de cadastro criado com campos, validação e confirmação." : "Projeto inicial profissional criado localmente para revisão e edição no Studio.",
     files: studioStarterFiles("application", input.name.trim()).map((file) => ({ path: file.filePath, content: file.content })),
   });
   let model = "modelo local profissional";
