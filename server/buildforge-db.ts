@@ -688,7 +688,8 @@ export function studioPreviewPreferenceFile(message: string, files: Array<{ file
   const colorWords = "preto|black|grafite|dourad[oa]?|gold|ouro|roxa|roxo|violet|purple|rosa|pink|amarela|amarelo|yellow|vermelha|vermelho|red|verde|green|azul|blue";
   const requestedColors = Array.from(source.matchAll(new RegExp(`\\b(${colorWords})\\b`, "g"))).map((match) => colorFrom(match[1])).filter(Boolean);
   const requestedColor = requestedColors[0] ?? colorFrom(source.match(new RegExp(`(?:para|por|em)\\s+(?:a cor )?(${colorWords})`))?.[1] ?? source);
-  const requestedAccent = requestedColors[1] ?? current.universal?.accent;
+  const removeAccent = /sem\s+(?:dourad[oa]?|gold|ouro|destaque|segunda cor)/.test(source);
+  const requestedAccent = removeAccent ? (requestedColor ?? "black") : (requestedColors[1] ?? current.universal?.accent);
   const requestedPieceColor = colorFrom(source.match(new RegExp(`pe[cç]as?(?:\\s+(?:${colorWords}))?\\s*(?:para|por|em)\\s+(?:a cor )?(${colorWords})`))?.[1] ?? "");
   const opponentColor = colorFrom(source.match(new RegExp(`(?:advers[aá]ri[oa]|oponent[ea]|inimig[oa]|segundo jogador|outras peças)\\s*(?:em|para|na cor|cor)?\\s*(${colorWords})`))?.[1] ?? "") ?? current.checkers?.opponentColor;
   const requestedBrand = message.match(/(?:nome|marca|título)\s*(?:do aplicativo|da agenda)?\s*(?:para|como|:)?\s*["“]?([^"“”\n]{3,60})/i)?.[1]?.trim();

@@ -154,6 +154,14 @@ describe("BuildForge domain rules", () => {
     expect(preference?.content).toContain('"accent": "gold"');
   });
 
+  it("remove o dourado quando o chat pede preto sem dourado", () => {
+    const preference = studioPreviewPreferenceFile("não a cor da calculadora, tudo preto, sem dourado", [{ filePath: "studio-preview.json", content: JSON.stringify({ universal: { primary: "black", accent: "gold", style: "racing" }, calculator: { scientific: true, racing: true } }) }, { filePath: "App.tsx", content: "Calculadora científica de corrida" }]);
+
+    expect(preference?.content).toContain('"primary": "black"');
+    expect(preference?.content).toContain('"accent": "black"');
+    expect(preference?.content).not.toContain('"accent": "gold"');
+  });
+
   it("reconhece pedidos diretos de renomeação sem usar o gerador externo", () => {
     expect(extractStudioProjectRename("mude o nome da calculadora para Turbo Gold")) .toBe("Turbo Gold");
     expect(extractStudioProjectRename("o título do app será Minha Calculadora")) .toBe("Minha Calculadora");
