@@ -110,6 +110,17 @@ describe("prévia do Studio", () => {
     expect(html).toContain("CORRIDA APLICADA");
   });
 
+  it("substitui a paleta fixa de corrida pela cor solicitada no chat", () => {
+    const html = createStudioPreviewDocument({ project: { name: "Calculadora Verde", projectType: "application", framework: "React Native" }, files: [
+      { filePath: "App.tsx", language: "typescript", content: "Calculadora científica" },
+      { filePath: "studio-preview.json", language: "json", content: JSON.stringify({ calculator: { scientific: true, racing: true }, universal: { primary: "green", style: "racing", objects: ["track", "car"] } }) },
+    ] });
+
+    expect(html).toContain("#16a34a");
+    expect(html).toContain("#117c38");
+    expect(html).toContain("#06140b");
+  });
+
   it("renderiza uma loja com catálogo, carrinho e checkout em vez do painel comercial genérico", () => {
     const html = createStudioPreviewDocument({ project: { name: "Loja Casa Aurora", projectType: "application", framework: "React Native" }, files: [{ filePath: "App.tsx", language: "typescript", content: "Loja completa com catálogo, produto e checkout." }] });
 

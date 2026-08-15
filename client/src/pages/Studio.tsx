@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Bot, CheckCircle2, Copy, FileCode2, Github, Lightbulb, ListChecks, LoaderCircle, Route, Sparkles, Trash2, Wand2 } from "lucide-react";
 import { Streamdown } from "streamdown";
 import { toast } from "sonner";
@@ -45,6 +44,7 @@ export default function StudioPage() {
   const [githubBranch, setGithubBranch] = useState("main");
   const [studioChat, setStudioChat] = useState("");
   const [previewRevision, setPreviewRevision] = useState(0);
+  const [previewState, setPreviewState] = useState<"idle" | "reloading" | "ready">("idle");
   const [alternatives, setAlternatives] = useState<StudioAlternative[]>([]);
   const [selectedAlternativeIndexes, setSelectedAlternativeIndexes] = useState<number[]>([]);
   const [selectedFilePath, setSelectedFilePath] = useState("");
@@ -58,7 +58,7 @@ export default function StudioPage() {
   const deleteStudioProject = trpc.buildforge.studio.deleteProject.useMutation({ onSuccess: async (result) => { await Promise.all([utils.buildforge.studio.projects.invalidate(), utils.buildforge.studio.projectDetail.invalidate()]); if (selectedStudioProject === result.id) { setSelectedStudioProject(null); setSelectedFilePath(""); setPreviewRevision(Date.now()); } toast.success(`Projeto ${result.name} excluído.`); }, onError: (error) => toast.error(studioErrorMessage(error.message)) });
   const importGithub = trpc.buildforge.studio.importGithub.useMutation({ onSuccess: async (result) => { await Promise.all([utils.buildforge.studio.projectDetail.invalidate(), utils.buildforge.studio.projects.invalidate()]); toast.success(`${result.imported} arquivo(s) importado(s) de ${result.repository}.`); }, onError: (error) => toast.error(error.message) });
   const syncToGithub = trpc.buildforge.studio.syncToGithub.useMutation({ onSuccess: async (result) => { await utils.buildforge.studio.projectDetail.invalidate(); toast.success(`${result.pushed} arquivo(s) enviado(s) para ${result.repository}.`); }, onError: (error) => toast.error(error.message) });
-  const chatEdit = trpc.buildforge.studio.chatEdit.useMutation({ onSuccess: async (result) => { await utils.buildforge.studio.projectDetail.invalidate(); setPreviewRevision(Date.now()); setStudioChat(""); toast.success(`${result.changedFiles.length} arquivo(s) atualizado(s) pelo chat.`); }, onError: (error) => toast.error(error.message) });
+  const chatEdit = trpc.buildforge.studio.chatEdit.useMutation({ onSuccess: async (result) => { setPreviewState("reloading"); await utils.buildforge.studio.projectDetail.invalidate(); setPreviewRevision((current) => current + 1); setStudioChat(""); toast.success(`${result.changedFiles.length} arquivo(s) persistido(s). Atualizando a prévia…`); }, onError: (error) => { setPreviewState("idle"); toast.error(error.message); } });
   const generateAlternatives = trpc.buildforge.studio.alternatives.useMutation({ onSuccess: (result) => { setAlternatives(result.alternatives); setSelectedAlternativeIndexes([]); toast.success("10 propostas profissionais foram preparadas."); }, onError: (error) => toast.error(error.message) });
   const generate = trpc.buildforge.studio.generateApp.useMutation({ onSuccess: async (result) => { await Promise.all([utils.buildforge.studio.projects.invalidate(), utils.buildforge.studio.projectDetail.invalidate()]); setSelectedStudioProject(result.studioProjectId); setPreviewRevision(Date.now()); setTab("workspace"); toast.success(`Projeto criado com ${result.files.length} arquivo(s). Revise a prévia e edite antes de gerar a build.`); }, onError: (error) => toast.error(studioErrorMessage(error.message)) });
   const migrate = trpc.buildforge.studio.planMigration.useMutation({ onSuccess: (result) => { setPlan(result.plan); toast.success(`Plano criado por ${result.model}.`); }, onError: (error) => toast.error(error.message) });
@@ -80,6 +80,26 @@ export default function StudioPage() {
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
+  useEffect(() => {
+    if (previewState !== "reloading") return;
+    let done = false;
+    const finish = (timedOut = false) => {
+      if (done) return;
+      done = true;
+      setPreviewState("ready");
+      toast[timedOut ? "warning" : "success"](timedOut ? "A alteração foi salva. A prévia está recarregando; se demorar, abra a URL temporária." : "Prévia atualizada ao vivo com a alteração solicitada.");
+    };
+    const attach = () => {
+      const frame = document.querySelector<HTMLIFrameElement>("iframe[title^='Prévia de']");
+      if (!frame) return;
+      frame.addEventListener("load", () => finish(), { once: true });
+      const source = frame.getAttribute("src");
+      if (source) frame.setAttribute("src", source);
+    };
+    const animationFrame = window.requestAnimationFrame(attach);
+    const timeout = window.setTimeout(() => finish(true), 5000);
+    return () => { window.cancelAnimationFrame(animationFrame); window.clearTimeout(timeout); };
+  }, [previewRevision, previewState]);
   const frameworkSelect = <select value={framework} onChange={(event) => setFramework(event.target.value as Framework)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="flutter">Flutter</option><option value="android">Android nativo</option><option value="react_native">React Native</option></select>;
 
   return <div className="mx-auto max-w-6xl space-y-6 pb-8"><header><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-500">Studio IA profissional</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Studio de aplicativos e websites</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-400">Comece com uma ideia, crie um app ou website, acompanhe arquivos e refine o projeto pelo chat. Todo resultado continua revisável antes de entrar na fila de build.</p></div>{selectedStudioProject && studioDetail.data && <button type="button" onClick={() => { if (window.confirm(`Excluir o projeto “${studioDetail.data.project.name}” e todos os seus arquivos e mensagens? Esta ação não pode ser desfeita.`)) deleteStudioProject.mutate({ projectId: studioDetail.data.project.id }); }} disabled={deleteStudioProject.isPending} className="inline-flex h-10 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 text-sm font-semibold text-red-700 disabled:opacity-50 dark:border-red-900/60 dark:bg-red-500/10 dark:text-red-300"><Trash2 className="h-4 w-4" />{deleteStudioProject.isPending ? "Excluindo…" : "Excluir projeto"}</button>}</div></header><div className="grid grid-cols-2 rounded-xl border border-slate-200 bg-white p-1 md:grid-cols-4 dark:border-slate-800 dark:bg-slate-950"><button onClick={() => setTab("workspace")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${tab === "workspace" ? "bg-violet-600 text-white" : "text-slate-500"}`}>Meus projetos</button><button onClick={() => setTab("guide")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${tab === "guide" ? "bg-violet-600 text-white" : "text-slate-500"}`}>Orientar ideia</button><button onClick={() => setTab("generate")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${tab === "generate" ? "bg-violet-600 text-white" : "text-slate-500"}`}>Gerar aplicativo</button><button onClick={() => setTab("migrate")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${tab === "migrate" ? "bg-violet-600 text-white" : "text-slate-500"}`}>Planejar migração</button></div>
