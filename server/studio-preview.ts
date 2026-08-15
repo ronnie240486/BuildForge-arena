@@ -151,7 +151,7 @@ function isAirplaneProject(preview: StudioPreview) {
   return /\b(avi[aã]o|aeronave|aviao|decolagem|pista de pouso|voo|flight)\b/i.test(previewSource(preview));
 }
 
-type UniversalPreviewTheme = { primary?: string; style?: string; objects?: string[]; features?: string[]; brandName?: string };
+type UniversalPreviewTheme = { primary?: string; accent?: string; style?: string; objects?: string[]; features?: string[]; brandName?: string };
 type CalculatorPreviewTheme = { scientific: boolean; racing: boolean; universal?: UniversalPreviewTheme };
 
 function readPreviewConfig(preview: StudioPreview): { universal?: UniversalPreviewTheme; calculator?: { scientific?: boolean; racing?: boolean } } {
@@ -207,13 +207,14 @@ function createCommercialPreviewDocument(preview: StudioPreview) {
 function applyUniversalPreviewTheme(document: string, preview: StudioPreview) {
   const universal = readPreviewConfig(preview).universal;
   if (!universal?.style && !universal?.primary && !universal?.objects?.length && !universal?.features?.length) return document;
-  const colors: Record<string, string> = { red: "#ef4444", blue: "#2563eb", green: "#16a34a", yellow: "#eab308", pink: "#ec4899", violet: "#7c3aed" };
+  const colors: Record<string, string> = { black: "#050505", gold: "#d4af37", red: "#ef4444", blue: "#2563eb", green: "#16a34a", yellow: "#eab308", pink: "#ec4899", violet: "#7c3aed" };
   const color = colors[universal.primary ?? ""] ?? "#f97316";
+  const accent = colors[universal.accent ?? ""] ?? color;
   const racing = universal.style === "racing";
   const label = racing ? "CORRIDA APLICADA" : universal.style ? `${universal.style.toUpperCase()} APLICADO` : "PERSONALIZAÇÃO APLICADA";
   const icons = [racing || universal.objects?.includes("track") ? "🏁" : "", universal.objects?.includes("car") ? "🏎️" : "", universal.objects?.includes("airplane") ? "✈️" : "", universal.objects?.includes("flames") ? "🔥" : ""].filter(Boolean).join(" ");
-  const racingOverrides = racing ? `.race-strip,.studio-universal-track{background:repeating-linear-gradient(90deg,${color} 0 34px,#d7f7dc 34px 50px,#095a27 50px 84px)!important;box-shadow:0 0 20px ${color}!important}.calc{border-color:${color}!important;background:linear-gradient(145deg,#12351d,#081a10 56%,#0d331b)!important}.display{border-color:${color}!important}.top{border-color:${color}!important}.badge,.key.equal,.tool{background:${color}!important}.key.op{background:#117c38!important}.chip{background:color-mix(in srgb,${color} 28%,transparent)!important;color:#d7f7dc!important}` : "";
-  const css = `<style>body{background:${racing ? `radial-gradient(circle at 88% 0,${color} 0,transparent 24%),radial-gradient(circle at 8% 0,#0a5c2c 0,transparent 27%),#06140b` : `radial-gradient(circle at 88% 0,${color} 0,transparent 30%),#080c1d`}!important}${racingOverrides}.studio-universal-banner{position:fixed;z-index:50;right:12px;bottom:12px;border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:8px 11px;background:${color};box-shadow:0 8px 24px rgba(0,0,0,.3);color:#fff;font:900 10px Inter,system-ui,sans-serif;letter-spacing:.09em}</style>`;
+  const racingOverrides = racing ? `.race-strip,.studio-universal-track{background:repeating-linear-gradient(90deg,${accent} 0 34px,#fff4c7 34px 50px,${color} 50px 84px)!important;box-shadow:0 0 20px ${accent}!important}.calc{border-color:${accent}!important;background:linear-gradient(145deg,${color},#111 56%,${color})!important}.display{border-color:${accent}!important}.top{border-color:${accent}!important}.badge,.key.equal,.tool{background:${accent}!important;color:${universal.accent === "gold" ? "#161006" : "#fff"}!important}.key.op{background:${color === "#050505" ? "#242424" : color}!important}.chip{background:color-mix(in srgb,${accent} 28%,transparent)!important;color:${accent}!important}` : "";
+  const css = `<style>body{background:${racing ? `radial-gradient(circle at 88% 0,${accent} 0,transparent 19%),radial-gradient(circle at 8% 0,${color} 0,transparent 35%),${color}` : `radial-gradient(circle at 88% 0,${color} 0,transparent 30%),#080c1d`}!important}${racingOverrides}.studio-universal-banner{position:fixed;z-index:50;right:12px;bottom:12px;border:1px solid ${accent};border-radius:999px;padding:8px 11px;background:${accent};box-shadow:0 8px 24px rgba(0,0,0,.3);color:${universal.accent === "gold" ? "#161006" : "#fff"};font:900 10px Inter,system-ui,sans-serif;letter-spacing:.09em}</style>`;
   const banner = `<div class="studio-universal-banner">${escapeHtml(icons)} ${escapeHtml(label)}</div>${racing ? '<div class="studio-universal-track"></div>' : ''}`;
   return document.replace("</head>", `${css}</head>`).replace("<body>", `<body>${banner}`);
 }

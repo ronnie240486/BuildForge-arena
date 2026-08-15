@@ -682,11 +682,14 @@ export async function syncStudioProjectToGithub(input: { actor: PlatformActor; p
 export function studioPreviewPreferenceFile(message: string, files: Array<{ filePath: string; content: string }>) {
   const source = message.toLowerCase();
   const existing = files.find((file) => file.filePath === "studio-preview.json")?.content;
-  let current: { checkers?: { pieceColor?: string; opponentColor?: string; board?: string; theme?: string; mode?: string; gameType?: string; dimensionalStyle?: string }; agenda?: { primary?: string; accent?: string; brandName?: string }; product?: { primary?: string; accent?: string; brandName?: string }; calculator?: { scientific?: boolean; racing?: boolean }; universal?: { primary?: string; style?: string; objects?: string[]; features?: string[]; brandName?: string } } = {};
+  let current: { checkers?: { pieceColor?: string; opponentColor?: string; board?: string; theme?: string; mode?: string; gameType?: string; dimensionalStyle?: string }; agenda?: { primary?: string; accent?: string; brandName?: string }; product?: { primary?: string; accent?: string; brandName?: string }; calculator?: { scientific?: boolean; racing?: boolean }; universal?: { primary?: string; accent?: string; style?: string; objects?: string[]; features?: string[]; brandName?: string } } = {};
   try { current = existing ? JSON.parse(existing) as typeof current : {}; } catch { current = {}; }
-  const colorFrom = (value: string) => /roxo|violet|purple/.test(value) ? "violet" : /rosa|pink/.test(value) ? "pink" : /amarel|yellow/.test(value) ? "yellow" : /vermelh|red/.test(value) ? "red" : /verde|green/.test(value) ? "green" : /azul|blue/.test(value) ? "blue" : undefined;
-  const colorWords = "roxa|roxo|violet|purple|rosa|pink|amarela|amarelo|yellow|vermelha|vermelho|red|verde|green|azul|blue";
-  const requestedColor = colorFrom(source.match(new RegExp(`(?:para|por|em)\\s+(?:a cor )?(${colorWords})`))?.[1] ?? source);
+  const colorFrom = (value: string) => /preto|black|grafite/.test(value) ? "black" : /dourad|gold|ouro/.test(value) ? "gold" : /roxo|violet|purple/.test(value) ? "violet" : /rosa|pink/.test(value) ? "pink" : /amarel|yellow/.test(value) ? "yellow" : /vermelh|red/.test(value) ? "red" : /verde|green/.test(value) ? "green" : /azul|blue/.test(value) ? "blue" : undefined;
+  const colorWords = "preto|black|grafite|dourad[oa]?|gold|ouro|roxa|roxo|violet|purple|rosa|pink|amarela|amarelo|yellow|vermelha|vermelho|red|verde|green|azul|blue";
+  const requestedColors = Array.from(source.matchAll(new RegExp(`\\b(${colorWords})\\b`, "g"))).map((match) => colorFrom(match[1])).filter(Boolean);
+  const requestedColor = requestedColors[0] ?? colorFrom(source.match(new RegExp(`(?:para|por|em)\\s+(?:a cor )?(${colorWords})`))?.[1] ?? source);
+  const requestedAccent = requestedColors[1] ?? current.universal?.accent;
+  const requestedPieceColor = colorFrom(source.match(new RegExp(`pe[cç]as?(?:\\s+(?:${colorWords}))?\\s*(?:para|por|em)\\s+(?:a cor )?(${colorWords})`))?.[1] ?? "");
   const opponentColor = colorFrom(source.match(new RegExp(`(?:advers[aá]ri[oa]|oponent[ea]|inimig[oa]|segundo jogador|outras peças)\\s*(?:em|para|na cor|cor)?\\s*(${colorWords})`))?.[1] ?? "") ?? current.checkers?.opponentColor;
   const requestedBrand = message.match(/(?:nome|marca|título)\s*(?:do aplicativo|da agenda)?\s*(?:para|como|:)?\s*["“]?([^"“”\n]{3,60})/i)?.[1]?.trim();
   const isScientific = /cient[ií]fic|trigonometr|sin\b|cos\b|tangente|raiz quadrada|mem[oó]ria/.test(source);
@@ -694,8 +697,8 @@ export function studioPreviewPreferenceFile(message: string, files: Array<{ file
   const requestedStyle = isRacing ? "racing" : /medieval|reino|castelo/.test(source) ? "medieval" : /neon|cyber|futurista/.test(source) ? "neon" : /luxo|luxury|sofisticad/.test(source) ? "luxury" : /minimalista|minimal/.test(source) ? "minimal" : current.universal?.style;
   const requestedObjects = Array.from(new Set([/avi[aã]o|aeronave|decolagem/.test(source) ? "airplane" : "", /carrinho|carro|autom[oó]vel|ve[ií]culo/.test(source) ? "car" : "", /pista|corrida|racing|hot\s*wheels/.test(source) ? "track" : "", /chamas?|fogo/.test(source) ? "flames" : ""].filter(Boolean)));
   const requestedFeatures = Array.from(new Set([isScientific ? "scientific" : "", /mem[oó]ria/.test(source) ? "memory" : "", /hist[oó]rico/.test(source) ? "history" : "", /anima[cç][aã]o|animado/.test(source) ? "animation" : ""].filter(Boolean)));
-  const hasUniversalRequest = Boolean(requestedColor || requestedBrand || isScientific || isRacing || requestedObjects.length || requestedFeatures.length || requestedStyle !== current.universal?.style);
-  const universal = hasUniversalRequest ? { primary: requestedColor ?? current.universal?.primary, style: requestedStyle, objects: requestedObjects.length ? requestedObjects : current.universal?.objects, features: requestedFeatures.length ? requestedFeatures : current.universal?.features, brandName: requestedBrand?.slice(0, 60) ?? current.universal?.brandName } : current.universal;
+  const hasUniversalRequest = Boolean(requestedColor || requestedAccent !== current.universal?.accent || requestedBrand || isScientific || isRacing || requestedObjects.length || requestedFeatures.length || requestedStyle !== current.universal?.style);
+  const universal = hasUniversalRequest ? { primary: requestedColor ?? current.universal?.primary, accent: requestedAccent, style: requestedStyle, objects: requestedObjects.length ? requestedObjects : current.universal?.objects, features: requestedFeatures.length ? requestedFeatures : current.universal?.features, brandName: requestedBrand?.slice(0, 60) ?? current.universal?.brandName } : current.universal;
   const withUniversal = universal ? { ...current, universal } : current;
   const isAgenda = /\b(agenda|agendamento|calend[áa]rio|planejamento|hor[áa]rio)\b/.test(`${source} ${files.map((file) => file.content.slice(0, 500)).join(" ").toLowerCase()}`);
   const isCalculator = /\b(calculadora|calculator|c[aá]lculo)\b/.test(`${source} ${files.map((file) => file.content.slice(0, 500)).join(" ").toLowerCase()}`);
@@ -711,7 +714,7 @@ export function studioPreviewPreferenceFile(message: string, files: Array<{ file
     const primary = requestedColor ?? current.product?.primary ?? "violet";
     return { filePath: "studio-preview.json", language: "json", content: JSON.stringify({ ...withUniversal, product: { primary, accent: primary === "yellow" ? "violet" : "yellow", brandName: requestedBrand?.slice(0, 60) ?? current.product?.brandName } }, null, 2) };
   }
-  const pieceColor = requestedColor ?? current.checkers?.pieceColor;
+  const pieceColor = requestedPieceColor ?? requestedColor ?? current.checkers?.pieceColor;
   const board = /m[aá]rmore|marble/.test(source) ? "marble" : /madeira|wood/.test(source) ? "wood" : /obsidiana|obsidian|preto/.test(source) ? "obsidian" : current.checkers?.board;
   const theme = /medieval|reino|castelo/.test(source) ? "medieval" : current.checkers?.theme;
   const mode = /ranqueamento|\belo\b|matchmaking|torneio|espectador|replay|competitiv/.test(source) ? "competitive" : current.checkers?.mode;

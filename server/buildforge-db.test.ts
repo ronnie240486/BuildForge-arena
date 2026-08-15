@@ -147,6 +147,13 @@ describe("BuildForge domain rules", () => {
     expect(preference?.content).toContain('"car"');
   });
 
+  it("persiste preto como base e dourado como destaque quando ambos são solicitados", () => {
+    const preference = studioPreviewPreferenceFile("Não gostei da cor, coloque preto em tudo com dourado", [{ filePath: "App.tsx", content: "Calculadora científica de corrida" }]);
+
+    expect(preference?.content).toContain('"primary": "black"');
+    expect(preference?.content).toContain('"accent": "gold"');
+  });
+
   it("valida o plano do agente contra elementos reais da prévia antes de confirmar", () => {
     const validation = validateStudioAgentPreview({
       project: { name: "Loja Aurora", projectType: "application", framework: "react_native" },

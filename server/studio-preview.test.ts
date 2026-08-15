@@ -117,8 +117,19 @@ describe("prévia do Studio", () => {
     ] });
 
     expect(html).toContain("#16a34a");
-    expect(html).toContain("#117c38");
-    expect(html).toContain("#06140b");
+    expect(html).toContain("#111");
+    expect(html).toContain("#fff4c7");
+  });
+
+  it("aplica preto e dourado em elementos de corrida quando a paleta composta é persistida", () => {
+    const html = createStudioPreviewDocument({ project: { name: "Calculadora Elite", projectType: "application", framework: "React Native" }, files: [
+      { filePath: "App.tsx", language: "typescript", content: "Calculadora científica" },
+      { filePath: "studio-preview.json", language: "json", content: JSON.stringify({ calculator: { scientific: true, racing: true }, universal: { primary: "black", accent: "gold", style: "racing", objects: ["track", "car"] } }) },
+    ] });
+
+    expect(html).toContain("#050505");
+    expect(html).toContain("#d4af37");
+    expect(html).toContain("#161006");
   });
 
   it("renderiza uma loja com catálogo, carrinho e checkout em vez do painel comercial genérico", () => {
