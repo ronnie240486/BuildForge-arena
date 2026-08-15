@@ -187,6 +187,8 @@
 - [x] Aplicar pedidos de renomeação no Studio ao nome persistido do projeto e ao título exibido na prévia, sem depender do gerador externo.
 - [x] Remover o bloqueio falso de “configuração já aplicada” quando o chat solicita alteração de cor ou tema diferente.
 - [x] Exibir no painel administrativo a rota e o fluxo de acesso separado para cada cliente criado.
+- [x] Fazer respostas do Studio confirmarem a atualização no painel de prévia embutido, sem instruir o usuário a abrir cartões, URLs ou outras telas.
+- [x] Criar um fluxo de solicitação de alteração para clientes enviarem mudanças de projeto ao administrador dentro da BuildForge.
 - [ ] Validar manualmente em desktop e mobile o fluxo completo de Organizações: abrir pelo menu, listar membros, adicionar ou editar papel, remover membro e confirmar feedbacks ou erros visíveis.
 - [ ] Validar manualmente a Central de Notificações pelo menu em desktop e mobile, comprovando carregamento, estado vazio, estado de erro com tentar novamente e recuperação.
 - [x] Substituir erros técnicos de briefing no Studio por validação e orientação clara em português antes do envio.

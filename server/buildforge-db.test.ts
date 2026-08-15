@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { strToU8, zipSync } from "fflate";
-import { canManageOwnedResource, detectZipFramework, extractStudioProjectRename, inferFramework, isPlatformAdmin, materialStudioFileChanges, parseStudioEditPayload, studioPreviewPreferenceFile, studioProductStandard, studioStarterFiles, validateStudioAgentPreview } from "./buildforge-db";
+import { canManageOwnedResource, detectZipFramework, extractStudioProjectRename, formatStudioEmbeddedReply, inferFramework, isPlatformAdmin, materialStudioFileChanges, parseStudioEditPayload, studioPreviewPreferenceFile, studioProductStandard, studioStarterFiles, validateStudioAgentPreview } from "./buildforge-db";
 
 describe("BuildForge domain rules", () => {
   it("identifica as stacks conhecidas a partir de referências de projeto", () => {
@@ -166,6 +166,14 @@ describe("BuildForge domain rules", () => {
     expect(extractStudioProjectRename("mude o nome da calculadora para Turbo Gold")) .toBe("Turbo Gold");
     expect(extractStudioProjectRename("o título do app será Minha Calculadora")) .toBe("Minha Calculadora");
     expect(extractStudioProjectRename("quero mudar as cores")) .toBeNull();
+  });
+
+  it("mantém a confirmação dentro da prévia embutida, sem mandar abrir outras telas", () => {
+    const reply = formatStudioEmbeddedReply("Coloquei rodas ao lado dos números. Abra a calculadora no cartão da tela inicial para ver o resultado.");
+
+    expect(reply).toContain("prévia embutida");
+    expect(reply.toLowerCase()).not.toContain("abra a calculadora");
+    expect(reply.toLowerCase()).not.toContain("cartão da tela inicial");
   });
 
   it("valida o plano do agente contra elementos reais da prévia antes de confirmar", () => {
