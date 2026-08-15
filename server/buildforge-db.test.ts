@@ -129,6 +129,24 @@ describe("BuildForge domain rules", () => {
     expect(preference?.content).toContain('"brandName": "Portal Aurora"');
   });
 
+  it("persiste modo científico e identidade de corrida solicitados para Calculadora", () => {
+    const preference = studioPreviewPreferenceFile("Transforme esta calculadora em científica com desenhos Hot Wheels, pista e chamas", [{ filePath: "App.tsx", content: "Calculadora profissional" }]);
+
+    expect(preference?.filePath).toBe("studio-preview.json");
+    expect(preference?.content).toContain('"scientific": true');
+    expect(preference?.content).toContain('"racing": true');
+    expect(preference?.content).toContain('"style": "racing"');
+    expect(preference?.content).toContain('"track"');
+  });
+
+  it("persiste uma identidade de corrida universal fora de modelos especializados", () => {
+    const preference = studioPreviewPreferenceFile("Quero este aplicativo com pista, carro e cores vermelhas de corrida", [{ filePath: "App.tsx", content: "Aplicativo comercial" }]);
+
+    expect(preference?.content).toContain('"style": "racing"');
+    expect(preference?.content).toContain('"primary": "red"');
+    expect(preference?.content).toContain('"car"');
+  });
+
   it("recupera uma resposta válida mesmo quando vier dentro de bloco de código", () => {
     const edit = parseStudioEditPayload('```json\n{"reply":"Pronto","files":[{"path":"App.tsx","language":"typescript","content":"export default 1"}]}\n```');
 

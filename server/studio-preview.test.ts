@@ -89,10 +89,25 @@ describe("prévia do Studio", () => {
   it("renderiza uma calculadora funcional com botões e histórico", () => {
     const html = createStudioPreviewDocument({ project: { name: "Calculadora Científica", projectType: "application", framework: "React Native" }, files: [{ filePath: "App.tsx", language: "typescript", content: "Calculadora com operações básicas e científicas." }] });
 
-    expect(html).toContain("UTILITÁRIO FUNCIONAL");
-    expect(html).toContain("Histórico ativo");
+    expect(html).toContain("MODO CIENTÍFICO");
+    expect(html).toContain("Científica ativa");
     expect(html).toContain("function press(k)");
-    expect(html).toContain("Modo científico");
+    expect(html).toContain("function show()");
+    expect(html).not.toContain("value.textContent=Number(current)");
+    expect(html).toContain('"sin"');
+    expect(html).toContain("Memória limpa");
+  });
+
+  it("renderiza calculadora de corrida quando o chat persiste Hot Wheels, pista e chamas", () => {
+    const html = createStudioPreviewDocument({ project: { name: "Calculadora Turbo", projectType: "application", framework: "React Native" }, files: [
+      { filePath: "App.tsx", language: "typescript", content: "Calculadora com histórico." },
+      { filePath: "studio-preview.json", language: "json", content: JSON.stringify({ calculator: { scientific: true, racing: true }, universal: { style: "racing", objects: ["car", "track", "flames"], features: ["scientific"] } }) },
+    ] });
+
+    expect(html).toContain("RACE EDITION");
+    expect(html).toContain("TURBO MATH");
+    expect(html).toContain("Pista · chamas · velocidade");
+    expect(html).toContain("CORRIDA APLICADA");
   });
 
   it("renderiza uma loja com catálogo, carrinho e checkout em vez do painel comercial genérico", () => {
