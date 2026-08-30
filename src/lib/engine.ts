@@ -339,7 +339,7 @@ export function analyzeBuildLog(log: string): LogInsight {
       autoFixable: false,
     };
   }
-  if (l.includes("app web") || l.includes("nao e um app android") || l.includes("nao encontrei um projeto android") || l.includes("site web nao vira apk")) {
+  if (l.includes("nao e um app android") || l.includes("nao encontrei um projeto android") || l.includes("site web nao vira apk")) {
     return {
       severity: "error",
       title: "Este repositório não é um app mobile",
