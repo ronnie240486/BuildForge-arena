@@ -564,7 +564,13 @@ function run(cmd, cwd, buildId, progressBase, progressSpan, logCmd) {
 
 async function buildJob(job) {
   const { buildId, target, variant, project } = job;
-  const work = fs.mkdtempSync(path.join(os.tmpdir(), "bf-"));
+  let work = fs.mkdtempSync(path.join(os.tmpdir(), "bf-"));
+  // Resolve para o caminho canonico (forma longa) para evitar que o Windows
+  // misture nomes curtos estilo 8.3 (ex: MEUSDO~1) com a forma longa
+  // (ex: Meus Documentos) em pastas de usuario com espacos/acentos.
+  // Essa mistura quebra o calculo de caminho relativo do Vite/Rollup ao
+  // gerar o index.html, produzindo caminhos absurdos cheios de "../".
+  try { work = fs.realpathSync.native(work); } catch { try { work = fs.realpathSync(work); } catch {} }
   const started = Date.now();
   try {
     // SITE -> APK: se o projeto tem uma URL de site, empacota via Capacitor (WebView).
