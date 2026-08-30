@@ -212,9 +212,15 @@ async function buildWebToExe(webDir, buildId) {
   const path = require("path");
   await pushLog(buildId, "[worker] === MODO WEB -> EXE (Electron) ===\n", 26);
 
-  // Descobre a saida web (dist/build/out) ou usa a raiz.
+  // Descobre a saida web (dist/build/out, incluindo subpastas comuns
+  // de projetos full-stack como dist/public ou dist/client) ou usa a raiz.
   const findWebOut = () => {
-    for (const c of ["dist", "build", "out", "www", "public"]) {
+    const candidates = [
+      "dist/public", "dist/client", "dist/www", "dist/browser",
+      "build/public", "client/dist",
+      "dist", "build", "out", "www", "public",
+    ];
+    for (const c of candidates) {
       if (fs.existsSync(path.join(webDir, c, "index.html"))) return c;
     }
     return fs.existsSync(path.join(webDir, "index.html")) ? "." : null;
@@ -293,7 +299,12 @@ async function buildWebToApk(webDir, srcDir, variant, buildId) {
   // 2) Build do web. Se ja existe uma pasta 'dist/build/out' pronta (commitada),
   // usamos ela e PULAMOS o build (evita erros de build do proprio projeto).
   const findWebOut = () => {
-    for (const cand of ["dist", "build", "out", "www", "public"]) {
+    const candidates = [
+      "dist/public", "dist/client", "dist/www", "dist/browser",
+      "build/public", "client/dist",
+      "dist", "build", "out", "www", "public",
+    ];
+    for (const cand of candidates) {
       if (fs.existsSync(path.join(webDir, cand, "index.html"))) return cand;
     }
     if (fs.existsSync(path.join(webDir, "index.html"))) return ".";
