@@ -564,12 +564,24 @@ function run(cmd, cwd, buildId, progressBase, progressSpan, logCmd) {
 
 async function buildJob(job) {
   const { buildId, target, variant, project } = job;
-  let work = fs.mkdtempSync(path.join(os.tmpdir(), "bf-"));
-  // Resolve para o caminho canonico (forma longa) para evitar que o Windows
-  // misture nomes curtos estilo 8.3 (ex: MEUSDO~1) com a forma longa
-  // (ex: Meus Documentos) em pastas de usuario com espacos/acentos.
-  // Essa mistura quebra o calculo de caminho relativo do Vite/Rollup ao
-  // gerar o index.html, produzindo caminhos absurdos cheios de "../".
+  // No Windows, os.tmpdir() costuma apontar para pastas de usuario com
+  // espacos/acentos (ex: "Meus Documentos"), e o Windows as vezes expoe
+  // apenas a forma curta 8.3 (ex: MEUSDO~1) para esses componentes de
+  // caminho. Misturar as formas curta e longa do mesmo caminho quebra o
+  // calculo de caminho relativo do Vite/Rollup (gera "../../../.." absurdos)
+  // e tambem aproxima do limite de 260 caracteres do Windows (MAX_PATH),
+  // ja que o caminho fica com varios niveis (Temp/bf-xxx/src/node_modules/...).
+  // Por isso, no Windows, usamos uma pasta fixa e curta na raiz do disco
+  // em vez de os.tmpdir(), evitando o problema por completo.
+  let tmpBase = os.tmpdir();
+  if (process.platform === "win32") {
+    const drive = (process.env.SystemDrive || "C:").replace(/[\\/]+$/, "");
+    tmpBase = drive + "\\bf-tmp";
+    try { fs.mkdirSync(tmpBase, { recursive: true }); } catch { tmpBase = os.tmpdir(); }
+  }
+  let work = fs.mkdtempSync(path.join(tmpBase, "bf-"));
+  // Ainda resolve para o caminho canonico, por seguranca (cobre casos onde
+  // nem a pasta fixa acima escapa totalmente de nomes curtos).
   try { work = fs.realpathSync.native(work); } catch { try { work = fs.realpathSync(work); } catch {} }
   const started = Date.now();
   try {
