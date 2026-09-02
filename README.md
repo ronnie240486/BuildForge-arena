@@ -31,7 +31,7 @@ npm run typecheck
 npm run lint
 npm run build
 npm run start
-```
+```.
 
 Consulte `DEPLOY.md` para as opções de publicação em Vercel, Railway, Render ou VPS.
 
