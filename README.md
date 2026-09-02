@@ -7,7 +7,7 @@ BuildForge é uma aplicação web construída com Next.js, React, TypeScript e T
 - Node.js 20 ou superior
 - PostgreSQL para os recursos persistentes da aplicação
 
-## Instalação
+## Instalação.
 
 ```bash
 npm install
