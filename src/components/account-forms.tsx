@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { Card, Button } from "@/components/ui";
 import { createUserByAdmin, changeMyPassword, saveGithubToken } from "@/lib/platform-actions";
-import { UserPlus, KeyRound, Loader2, CheckCircle2, Github } from "lucide-react";
+import { UserPlus, KeyRound, Loader2, CheckCircle2, Link2 } from "lucide-react";
 
 const input =
   "h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-900";
@@ -44,7 +44,7 @@ export function GithubIntegrationForm({ hasToken, githubUser }: { hasToken: bool
   return (
     <Card className="p-5">
       <div className="mb-3 flex items-center gap-2">
-        <Github className="h-4 w-4 text-indigo-500" />
+        <Link2 className="h-4 w-4 text-indigo-500" />
         <h2 className="font-semibold">Integração com GitHub</h2>
       </div>
       <p className="mb-3 text-xs text-slate-400">
@@ -56,7 +56,7 @@ export function GithubIntegrationForm({ hasToken, githubUser }: { hasToken: bool
         <input name="githubToken" type="password" placeholder={hasToken ? "•••••••••••• (deixe em branco para manter)" : "ghp_... ou github_pat_..."} className={input} />
         <div className="sm:col-span-2 flex items-center gap-3">
           <Button type="submit" disabled={pending}>
-            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Github className="h-4 w-4" />} Salvar
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />} Salvar
           </Button>
           {state?.error && <span className="text-sm text-rose-500">{state.error}</span>}
           {state?.ok && <span className="inline-flex items-center gap-1 text-sm text-emerald-500"><CheckCircle2 className="h-4 w-4" /> Salvo!</span>}
