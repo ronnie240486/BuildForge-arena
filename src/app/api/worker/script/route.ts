@@ -273,6 +273,15 @@ async function buildWebToExe(webDir, buildId) {
   if (!ok) return false;
   await pushLog(buildId, "[worker] Empacotando o instalador .exe (electron-builder)...\n", 82);
   ok = await run("npx electron-builder --win --x64", el, buildId, 82, 14);
+  if (!ok) {
+    // No Windows, o antivirus (Windows Defender) as vezes trava por uma fracao
+    // de segundo um .exe recem-assinado pelo signtool, fazendo o NSIS falhar
+    // com "Can't open output file" (ERR_ELECTRON_BUILDER_CANNOT_EXECUTE).
+    // E um erro transitorio: uma segunda tentativa quase sempre resolve.
+    await pushLog(buildId, "[worker] Empacotamento falhou (possivel trava do antivirus no .exe assinado). Tentando novamente...\n", 82);
+    await sleep(3000);
+    ok = await run("npx electron-builder --win --x64", el, buildId, 82, 14);
+  }
   return ok;
 }
 
