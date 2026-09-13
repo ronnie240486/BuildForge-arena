@@ -45,9 +45,9 @@ export default async function DashboardPage() {
 
     const agg = await db
       .select({
-        total: sql<number>`count(*)::int`,
-        success: sql<number>`count(*) filter (where ${builds.status} = 'success')::int`,
-        avg: sql<number>`round(avg(${builds.durationMs}) filter (where ${builds.status} = 'success'))::int`,
+        total: sql<number>`count(*)`,
+        success: sql<number>`count(*) filter (where ${builds.status} = 'success')`,
+        avg: sql<number>`cast(round(avg(${builds.durationMs}) filter (where ${builds.status} = 'success')) as integer)`,
       })
       .from(builds)
       .where(inArray(builds.projectId, projectIds));

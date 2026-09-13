@@ -14,11 +14,11 @@ export default async function AdminPage() {
 
   const allUsers = await db.select().from(users);
   const projectCounts = await db
-    .select({ ownerId: projects.ownerId, count: sql<number>`count(*)::int` })
+    .select({ ownerId: projects.ownerId, count: sql<number>`count(*)` })
     .from(projects)
     .groupBy(projects.ownerId);
   const buildCounts = await db
-    .select({ userId: builds.userId, count: sql<number>`count(*)::int` })
+    .select({ userId: builds.userId, count: sql<number>`count(*)` })
     .from(builds)
     .groupBy(builds.userId);
 

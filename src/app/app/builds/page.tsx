@@ -23,7 +23,7 @@ export default async function BuildsPage() {
           framework: projects.framework,
           durationMs: builds.durationMs,
           createdAt: builds.createdAt,
-          artifactCount: sql<number>`(select count(*)::int from ${artifacts} where ${artifacts.buildId} = ${builds.id})`,
+          artifactCount: sql<number>`(select count(*) from ${artifacts} where ${artifacts.buildId} = ${builds.id})`,
         })
         .from(builds)
         .innerJoin(projects, eq(builds.projectId, projects.id))

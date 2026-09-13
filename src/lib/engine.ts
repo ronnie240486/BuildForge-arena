@@ -351,7 +351,7 @@ export function analyzeBuildLog(log: string): LogInsight {
       autoFixable: false,
     };
   }
-  if (l.includes("should contain one of the possible settings") || l.includes("settings.gradle") || l.includes("run gradle init")) {
+  if (l.includes("should contain one of the possible settings") || l.includes("run gradle init")) {
     return {
       severity: "error",
       title: "Gradle rodou na pasta errada",
@@ -393,7 +393,7 @@ export function analyzeBuildLog(log: string): LogInsight {
       autoFixable: false,
     };
   }
-  if (l.includes("keystore") || l.includes("not signed") || l.includes("signingconfig")) {
+  if (l.includes("falha ao gerar keystore") || l.includes("not signed") || l.includes("signingconfig")) {
     return {
       severity: "warning",
       title: "APK de release sem assinatura",

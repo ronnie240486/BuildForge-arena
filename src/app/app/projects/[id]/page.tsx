@@ -73,7 +73,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const projBuilds = await db
     .select({
       build: builds,
-      artifactCount: sql<number>`(select count(*)::int from ${artifacts} where ${artifacts.buildId} = ${builds.id})`,
+      artifactCount: sql<number>`(select count(*) from ${artifacts} where ${artifacts.buildId} = ${builds.id})`,
     })
     .from(builds)
     .where(eq(builds.projectId, id))

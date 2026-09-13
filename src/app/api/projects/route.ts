@@ -20,7 +20,7 @@ export async function GET() {
       status: projects.status,
       healthScore: projects.healthScore,
       createdAt: projects.createdAt,
-      buildCount: sql<number>`(select count(*)::int from ${builds} where ${builds.projectId} = ${projects.id})`,
+      buildCount: sql<number>`(select count(*) from ${builds} where ${builds.projectId} = ${projects.id})`,
     })
     .from(projects)
     .where(eq(projects.ownerId, user.id))

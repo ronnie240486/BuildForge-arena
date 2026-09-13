@@ -524,14 +524,34 @@ function buildEnv() {
   return env;
 }
 
+// Limpa o cache global do Gradle (~/.gradle/caches). Usado como auto-recuperacao
+// quando o Gradle acusa corrupcao no indice do cache (ver run() abaixo) — isso
+// acontece com mais frequencia em maquinas com pouca RAM, onde um processo Java
+// morto no meio de uma escrita deixa o indice btree do cache inconsistente.
+function clearGradleCache(buildId) {
+  try {
+    const home = process.env.GRADLE_USER_HOME || path.join(os.homedir(), ".gradle");
+    const cachesDir = path.join(home, "caches");
+    if (fs.existsSync(cachesDir)) {
+      fs.rmSync(cachesDir, { recursive: true, force: true });
+      pushLog(buildId, "[worker] Cache do Gradle corrompido detectado; cache limpo (" + cachesDir + "). Tentando de novo...\n");
+    }
+  } catch (e) {
+    pushLog(buildId, "[worker] Falha ao limpar cache do Gradle: " + (e && e.message) + "\n");
+  }
+}
+
 // Executa um comando com STREAMING de logs em tempo real (linha a linha).
-function run(cmd, cwd, buildId, progressBase, progressSpan, logCmd) {
+// Se o Gradle acusar corrupcao no cache global (CorruptedCacheException), limpa
+// o cache e tenta o mesmo comando novamente uma vez, automaticamente.
+function run(cmd, cwd, buildId, progressBase, progressSpan, logCmd, _retriedAfterCacheClear) {
   return new Promise((resolve) => {
     const { spawn } = require("child_process");
     const env = buildEnv();
     let buf = "";
     let lines = 0;
     let lastFlush = Date.now();
+    let sawCacheCorruption = false;
     pushLog(buildId, "$ " + (logCmd || cmd) + "\n");
 
     const child = spawn(cmd, { cwd, env, shell: true });
@@ -545,6 +565,7 @@ function run(cmd, cwd, buildId, progressBase, progressSpan, logCmd) {
       buf = parts.pop() || "";
       for (const line of parts) {
         if (!line.trim()) continue;
+        if (line.includes("CorruptedCacheException") || line.includes("Corrupted FreeListBlock")) sawCacheCorruption = true;
         lines++;
         pushLog(
           buildId,
@@ -561,6 +582,11 @@ function run(cmd, cwd, buildId, progressBase, progressSpan, logCmd) {
       clearInterval(heartbeat);
       if (buf.trim()) pushLog(buildId, buf + "\n");
       if (errMsg) pushLog(buildId, "[worker] " + errMsg + "\n");
+      if (code !== 0 && sawCacheCorruption && !_retriedAfterCacheClear) {
+        clearGradleCache(buildId);
+        resolve(run(cmd, cwd, buildId, progressBase, progressSpan, logCmd, true));
+        return;
+      }
       resolve(code === 0);
     };
     child.on("close", (code) => done(code));
