@@ -393,7 +393,7 @@ export function analyzeBuildLog(log: string): LogInsight {
       autoFixable: false,
     };
   }
-  if (l.includes("falha ao gerar keystore") || l.includes("not signed") || l.includes("signingconfig")) {
+  if (l.includes("falha ao gerar keystore") || l.includes("apk is not signed") || l.includes("no signingconfig")) {
     return {
       severity: "warning",
       title: "APK de release sem assinatura",

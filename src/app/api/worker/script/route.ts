@@ -753,8 +753,11 @@ async function buildJob(job) {
       return null;
     }
 
-    // Extensao alvo conforme o build.
-    const wantExt = target === "exe" ? [".exe"] : target === "aab" ? [".aab", ".apk"] : [".apk", ".aab"];
+    // Extensao alvo conforme o build. "exe" so faz sentido pra projetos WEB
+    // (empacotados via Electron); reavaliado abaixo assim que sabemos se o
+    // projeto e web ou nativo, ja que um projeto Android/Flutter sempre gera
+    // .apk/.aab mesmo que o usuario tenha selecionado "exe" por engano na UI.
+    let wantExt = target === "exe" ? [".exe"] : target === "aab" ? [".aab", ".apk"] : [".apk", ".aab"];
     function findApks(root) {
       const out = [];
       const skip = new Set(["node_modules", ".git"]);
@@ -868,6 +871,13 @@ async function buildJob(job) {
         fs.existsSync(path.join(webDir, "next.config.js")) ||
         fs.existsSync(path.join(srcDir, "index.html")) ||
         Boolean(webPkg));
+
+    // Projetos nativos (Android/Flutter/Expo) sempre geram .apk/.aab, nunca
+    // .exe — mesmo que o usuario tenha selecionado "exe" na UI por engano
+    // (isso so e valido pra target === "exe" && isWeb, tratado em buildWebToExe).
+    if (!(isWeb && target === "exe")) {
+      wantExt = target === "aab" ? [".aab", ".apk"] : [".apk", ".aab"];
+    }
 
     if (!isFlutter && !isExpo && !nativeReady && !isWeb) {
       throw new Error(
