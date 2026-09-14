@@ -1,14 +1,22 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Card, Badge, Button } from "@/components/ui";
 import { createProjectFromTemplate } from "@/lib/template-actions";
 import type { TemplateDef } from "@/lib/templates";
-import { LayoutTemplate, Loader2, ArrowRight } from "lucide-react";
+import { LayoutTemplate, Loader2, ArrowRight, Globe } from "lucide-react";
 
 export function TemplatesClient({ templates }: { templates: TemplateDef[] }) {
   const [selected, setSelected] = useState<TemplateDef | null>(null);
   const [state, action, pending] = useActionState(createProjectFromTemplate, null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // O painel de criação aparece abaixo da grade inteira — sem isso, num clique
+  // num template no topo (fora da tela após rolar), parece que nada aconteceu.
+  useEffect(() => {
+    if (selected) panelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [selected]);
 
   return (
     <div className="space-y-6">
@@ -35,21 +43,37 @@ export function TemplatesClient({ templates }: { templates: TemplateDef[] }) {
       </div>
 
       {selected && (
+        <div ref={panelRef}>
         <Card className="p-5">
-          <h2 className="mb-3 font-semibold">Criar projeto a partir de &quot;{selected.label}&quot;</h2>
-          <form action={action} className="grid gap-3 sm:grid-cols-[1fr_auto]">
-            <input type="hidden" name="templateId" value={selected.id} />
-            <input
-              name="name"
-              placeholder={`${selected.label} App`}
-              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-900"
-            />
-            <Button type="submit" disabled={pending}>
-              {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />} Criar projeto
-            </Button>
-          </form>
-          {state && "error" in state && <p className="mt-2 text-sm text-rose-600">{state.error}</p>}
+          {selected.id === "webview" ? (
+            <>
+              <h2 className="mb-2 font-semibold">Empacotar um site como Android</h2>
+              <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+                Esse caso usa um fluxo dedicado que empacota a URL de verdade (via Capacitor), em vez de gerar um projeto genérico — é em <b>Releases</b>.
+              </p>
+              <Link href="/app/releases">
+                <Button><Globe className="h-4 w-4" /> Ir para Releases <ArrowRight className="h-4 w-4" /></Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <h2 className="mb-3 font-semibold">Criar projeto a partir de &quot;{selected.label}&quot;</h2>
+              <form action={action} className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                <input type="hidden" name="templateId" value={selected.id} />
+                <input
+                  name="name"
+                  placeholder={`${selected.label} App`}
+                  className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-900"
+                />
+                <Button type="submit" disabled={pending}>
+                  {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />} Criar projeto
+                </Button>
+              </form>
+              {state && "error" in state && <p className="mt-2 text-sm text-rose-600">{state.error}</p>}
+            </>
+          )}
         </Card>
+        </div>
       )}
     </div>
   );

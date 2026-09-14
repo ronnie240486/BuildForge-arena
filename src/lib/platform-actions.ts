@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { toolchain, webhooks, users, notifications, buildWorkers, aiSettings } from "@/db/schema";
+import { toolchain, users, notifications, buildWorkers, aiSettings } from "@/db/schema";
 import { requireUser, requireAdmin } from "@/lib/auth";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -49,29 +49,6 @@ export async function verifyEnvironment() {
     message: "Todas as ferramentas obrigatórias estão operacionais.",
   });
   revalidatePath("/app/toolchain");
-}
-
-/* ------------------------------ Webhooks (P6) ----------------------------- */
-
-export async function addWebhook(prevState: unknown, formData: FormData) {
-  const me = await requireUser();
-  const url = String(formData.get("url") || "").trim();
-  const label = String(formData.get("label") || "").trim();
-  const events = String(formData.get("events") || "build.success,build.failed").split(",").map((s) => s.trim()).filter(Boolean);
-  if (!/^https?:\/\/.+/.test(url)) return { error: "Informe uma URL válida (https://…)." };
-  await db.insert(webhooks).values({ ownerId: me.id, url, label: label || undefined, events });
-  revalidatePath("/app/webhooks");
-  redirect("/app/webhooks");
-}
-
-export async function deleteWebhook(id: string) {
-  await db.delete(webhooks).where(eq(webhooks.id, id));
-  revalidatePath("/app/webhooks");
-}
-
-export async function toggleWebhook(id: string, active: boolean) {
-  await db.update(webhooks).set({ active: !active }).where(eq(webhooks.id, id));
-  revalidatePath("/app/webhooks");
 }
 
 // Salva (ou remove) o Personal Access Token do GitHub do próprio usuário —

@@ -7,7 +7,7 @@ import { CreateUserForm, ChangePasswordForm, GithubIntegrationForm } from "@/com
 import { AiSettings } from "@/components/ai-settings";
 import { aiSettings } from "@/db/schema";
 import { avatarGradient, initials, cn, timeAgo } from "@/lib/utils";
-import { Download, Monitor, Apple, RefreshCw, ShieldCheck, Database, Package, MonitorSmartphone } from "lucide-react";
+import { Download, ShieldCheck, Database } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +36,7 @@ export default async function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Configurações</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Perfil, equipe, distribuição e backup.</p>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Perfil, equipe e backup.</p>
       </div>
 
       {/* Profile */}
@@ -57,31 +57,7 @@ export default async function SettingsPage() {
         </div>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ThemeToggle />
-
-        {/* Distribution (Phase 8) */}
-        <Card className="p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <MonitorSmartphone className="h-4 w-4 text-indigo-500" />
-            <h2 className="font-semibold">Distribuição</h2>
-          </div>
-          <div className="space-y-3">
-            <InstallerCard icon={<Monitor className="h-4 w-4" />} os="Windows" file="BuildForge-Setup.exe" note="Instalador NSIS com atualizador automático" />
-            <InstallerCard icon={<Apple className="h-4 w-4" />} os="Linux" file="BuildForge.AppImage" note="AppImage + .deb para Debian/Ubuntu" />
-            <div className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2.5 dark:border-slate-700">
-              <div className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4 text-emerald-500" />
-                <div>
-                  <p className="text-sm font-medium">Atualizador automático</p>
-                  <p className="text-[11px] text-slate-400">Verifica novas versões ao iniciar</p>
-                </div>
-              </div>
-              <Badge tone="emerald" dot>ativo</Badge>
-            </div>
-          </div>
-        </Card>
-      </div>
+      <ThemeToggle />
 
       {/* IA — Claude / GPT / Gemini (admin) */}
       {me.role === "admin" && <AiSettings current={aiCurrent} />}
@@ -149,24 +125,6 @@ export default async function SettingsPage() {
           </div>
         </Card>
       )}
-    </div>
-  );
-}
-
-function InstallerCard({ icon, os, file, note }: { icon: React.ReactNode; os: string; file: string; note: string }) {
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2.5 dark:border-slate-700">
-      <div className="flex items-center gap-2.5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{icon}</div>
-        <div>
-          <p className="text-sm font-medium">{os}</p>
-          <p className="font-mono text-[11px] text-slate-400">{file}</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="hidden text-[11px] text-slate-400 sm:block">{note}</span>
-        <Button size="sm" variant="ghost"><Package className="h-3.5 w-3.5" /></Button>
-      </div>
     </div>
   );
 }
