@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { projects, generatedFiles, notifications } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
-import { askAI, getAiConfig } from "@/lib/ai-provider";
+import { askAI, getAiConfig, AI_MAX_TOKENS_CODEGEN } from "@/lib/ai-provider";
 import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     `Descrição do que o app deve fazer:\n${prompt}\n\n` +
     "Gere todos os arquivos necessários para compilar um APK funcional.";
 
-  const raw = await askAI(system, userMsg);
+  const raw = await askAI(system, userMsg, AI_MAX_TOKENS_CODEGEN);
   if (!raw) return Response.json({ error: "A IA não respondeu. Verifique a chave em Configurações." }, { status: 502 });
 
   let files: { path: string; content: string }[] = [];

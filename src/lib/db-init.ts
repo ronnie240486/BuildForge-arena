@@ -50,6 +50,7 @@ const CREATE_STATEMENTS = [
     "web_url" text,
     "ai_prompt" text,
     "ai_generated" integer NOT NULL DEFAULT 0,
+    "derived_from_project_id" text REFERENCES "projects"("id"),
     "detection" text,
     "health_score" integer DEFAULT 100,
     "last_build_at" integer,
@@ -209,10 +210,28 @@ const CREATE_STATEMENTS = [
   )`,
 ];
 
+// Adiciona uma coluna a uma tabela ja existente, se ela ainda nao existir.
+// SQLite nao suporta "ALTER TABLE ADD COLUMN IF NOT EXISTS" — usado para
+// evoluir o schema em bancos ja criados (a tabela nova ja nasce com a coluna
+// via CREATE_STATEMENTS; isso so importa para bancos criados antes dela).
+async function ensureColumn(table: string, column: string, addColumnDdl: string) {
+  const res = await client.execute(
+    `SELECT 1 FROM pragma_table_info('${table}') WHERE name = '${column}'`,
+  );
+  if (res.rows.length === 0) {
+    await client.execute(`ALTER TABLE "${table}" ADD COLUMN ${addColumnDdl}`);
+  }
+}
+
 export async function ensureSchema() {
   for (const statement of CREATE_STATEMENTS) {
     await client.execute(statement);
   }
+  await ensureColumn(
+    "projects",
+    "derived_from_project_id",
+    `"derived_from_project_id" text REFERENCES "projects"("id")`,
+  );
 }
 
 export async function seedDefaults() {

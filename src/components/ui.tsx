@@ -147,6 +147,7 @@ export function FrameworkIcon({ fw, className }: { fw: string; className?: strin
     android: { label: "Android", emoji: "🤖" },
     flutter: { label: "Flutter", emoji: "🐦" },
     reactnative: { label: "React Native", emoji: "⚛️" },
+    web: { label: "Web", emoji: "🌐" },
     unknown: { label: "Unknown", emoji: "📦" },
   };
   const m = map[fw] ?? map.unknown;

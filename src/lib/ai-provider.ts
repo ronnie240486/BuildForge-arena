@@ -14,6 +14,11 @@ const DEFAULT_MODELS: Record<string, string> = {
   google: "gemini-1.5-flash",
 };
 
+// Tokens de saída padrão (respostas curtas, ex. relatórios/JSON pequeno) vs.
+// geração de código (múltiplos arquivos de um projeto inteiro).
+export const AI_MAX_TOKENS_DEFAULT = 1024;
+export const AI_MAX_TOKENS_CODEGEN = 8192;
+
 export async function getAiConfig(): Promise<AiConfig | null> {
   const [row] = await db.select().from(aiSettings).limit(1);
   if (!row) return null;
@@ -24,7 +29,7 @@ export async function getAiConfig(): Promise<AiConfig | null> {
  * Chama a IA real (Claude / GPT / Gemini) com o prompt dado.
  * Retorna o texto da resposta, ou null se não houver IA configurada/erro.
  */
-export async function askAI(system: string, user: string): Promise<string | null> {
+export async function askAI(system: string, user: string, maxTokens: number = AI_MAX_TOKENS_DEFAULT): Promise<string | null> {
   const cfg = await getAiConfig();
   if (!cfg || !cfg.enabled || !cfg.apiKey) return null;
   const model = cfg.model || DEFAULT_MODELS[cfg.provider] || DEFAULT_MODELS.anthropic;
@@ -40,7 +45,7 @@ export async function askAI(system: string, user: string): Promise<string | null
         },
         body: JSON.stringify({
           model,
-          max_tokens: 1024,
+          max_tokens: maxTokens,
           system,
           messages: [{ role: "user", content: user }],
         }),
@@ -60,7 +65,7 @@ export async function askAI(system: string, user: string): Promise<string | null
             { role: "system", content: system },
             { role: "user", content: user },
           ],
-          max_tokens: 1024,
+          max_tokens: maxTokens,
         }),
       });
       if (!res.ok) return null;
@@ -77,6 +82,7 @@ export async function askAI(system: string, user: string): Promise<string | null
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: system }] },
             contents: [{ role: "user", parts: [{ text: user }] }],
+            generationConfig: { maxOutputTokens: maxTokens },
           }),
         },
       );

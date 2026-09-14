@@ -5,11 +5,15 @@ import { startBuild } from "@/lib/project-actions";
 import { Button } from "@/components/ui";
 import { Hammer, Loader2 } from "lucide-react";
 
-const targets = [
-  { id: "apk", label: "APK", desc: "Android installer" },
-  { id: "aab", label: "AAB", desc: "Play Store bundle" },
-  { id: "appbundle", label: "Bundle", desc: "Generic bundle" },
-  { id: "exe", label: "EXE", desc: "Windows (RN)" },
+// Projetos nativos (Android/Flutter/RN) sempre geram .apk/.aab via Gradle —
+// nunca .exe. "exe" só faz sentido pra projetos web (empacotados via Electron),
+// senão o worker procura pela extensão errada e o build "falha" mesmo tendo
+// compilado com sucesso.
+const ALL_TARGETS = [
+  { id: "apk", label: "APK", desc: "Android installer", frameworks: ["android", "flutter", "reactnative", "unknown"] },
+  { id: "aab", label: "AAB", desc: "Play Store bundle", frameworks: ["android", "flutter", "reactnative", "unknown"] },
+  { id: "appbundle", label: "Bundle", desc: "Generic bundle", frameworks: ["android", "flutter", "reactnative", "unknown"] },
+  { id: "exe", label: "EXE", desc: "Windows (Electron)", frameworks: ["web", "unknown"] },
 ] as const;
 
 const variants = ["release", "debug", "staging"];
@@ -25,7 +29,8 @@ export function BuildLauncher({
   hasWorker: boolean;
   hasRepo: boolean;
 }) {
-  const [target, setTarget] = useState<string>(framework === "reactnative" ? "exe" : "apk");
+  const targets = ALL_TARGETS.filter((t) => (t.frameworks as readonly string[]).includes(framework));
+  const [target, setTarget] = useState<string>(framework === "web" ? "exe" : "apk");
   const [variant, setVariant] = useState("release");
   const [pending, startTransition] = useTransition();
 

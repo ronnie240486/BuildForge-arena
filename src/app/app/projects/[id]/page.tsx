@@ -8,6 +8,7 @@ import { Card, Badge, FrameworkIcon, Button, Progress } from "@/components/ui";
 import { BuildLauncher } from "@/components/build-launcher";
 import { ProjectFixButton, RebuildButton } from "@/components/project-fix-button";
 import { AppIdentity } from "@/components/app-identity";
+import { RecreateAsWebButton } from "@/components/recreate-as-web-button";
 
 import type { ProjectDetection } from "@/db/schema";
 import { timeAgo, formatDuration } from "@/lib/utils";
@@ -41,6 +42,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const [project] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
   if (!project || project.ownerId !== me.id) notFound();
+
+  const derivedFrom = project.derivedFromProjectId
+    ? (await db.select({ id: projects.id, name: projects.name }).from(projects).where(eq(projects.id, project.derivedFromProjectId)).limit(1))[0]
+    : null;
+
+  const canRecreateAsWeb =
+    ["android", "flutter", "reactnative"].includes(project.framework) &&
+    project.source === "github" &&
+    Boolean(project.repoUrl) &&
+    !project.derivedFromProjectId;
 
   const detection = (project.detection as ProjectDetection | null) ?? null;
 
@@ -114,13 +125,21 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 </a>
               )}
             </div>
+            {derivedFrom && (
+              <p className="mt-1 text-xs text-slate-400">
+                Recriado a partir de: <Link href={`/app/projects/${derivedFrom.id}`} className="text-indigo-500 hover:underline">{derivedFrom.name}</Link>
+              </p>
+            )}
           </div>
         </div>
-        <form action={deleteProject.bind(null, project.id)}>
-          <Button type="submit" variant="ghost" size="sm" className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10">
-            <Trash2 className="h-4 w-4" /> Excluir
-          </Button>
-        </form>
+        <div className="flex items-start gap-2">
+          {canRecreateAsWeb && <RecreateAsWebButton projectId={project.id} />}
+          <form action={deleteProject.bind(null, project.id)}>
+            <Button type="submit" variant="ghost" size="sm" className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10">
+              <Trash2 className="h-4 w-4" /> Excluir
+            </Button>
+          </form>
+        </div>
       </div>
 
       {blocking.length > 0 && (

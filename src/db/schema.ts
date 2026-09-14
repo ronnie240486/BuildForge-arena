@@ -3,6 +3,7 @@ import {
   text,
   integer,
   primaryKey,
+  type AnySQLiteColumn,
 } from "drizzle-orm/sqlite-core";
 
 /* -------------------------------------------------------------------------- */
@@ -50,7 +51,7 @@ export const projects = sqliteTable("projects", {
   repoUrl: text("repo_url"),
   branch: text("branch").default("main").notNull(),
   commitSha: text("commit_sha"),
-  framework: text("framework", { enum: ["android", "flutter", "reactnative", "unknown"] }).default("unknown").notNull(),
+  framework: text("framework", { enum: ["android", "flutter", "reactnative", "unknown", "web"] }).default("unknown").notNull(),
   language: text("language"), // kotlin / java / dart / typescript
   packageName: text("package_name"),
   minSdk: integer("min_sdk"),
@@ -65,6 +66,8 @@ export const projects = sqliteTable("projects", {
   // Projeto gerado por IA: guarda o prompt usado.
   aiPrompt: text("ai_prompt"),
   aiGenerated: integer("ai_generated", { mode: "boolean" }).default(false).notNull(),
+  // Se este projeto foi recriado (ex.: "Recriar como Web") a partir de outro projeto.
+  derivedFromProjectId: text("derived_from_project_id").references((): AnySQLiteColumn => projects.id, { onDelete: "set null" }),
   // detection result stored as JSON (deps, missing deps, warnings, files)
   detection: text("detection", { mode: "json" }).$type<ProjectDetection>(),
   healthScore: integer("health_score").default(100),
@@ -313,7 +316,7 @@ export const releaseLinks = sqliteTable("release_links", {
 /* -------------------------------------------------------------------------- */
 
 export interface ProjectDetection {
-  framework: "android" | "flutter" | "reactnative" | "unknown";
+  framework: "android" | "flutter" | "reactnative" | "unknown" | "web";
   language: string;
   buildSystem: string;
   files: { path: string; role: string }[];
